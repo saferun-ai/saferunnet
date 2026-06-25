@@ -20,6 +20,7 @@ Persist and reload node identity material without leaking file-format concerns i
 - app-kernel integration via a published node-identity runtime service
 - best-effort secure file creation and replace-on-save flow for identity persistence
 - Windows ACL hardening and replace-on-save behavior are exercised in tests
+- daemon bootstrap now resolves config-derived relative keyfile paths and default identity locations before constructing the runtime module
 
 ## Partially Implemented Items
 
@@ -45,6 +46,7 @@ Persist and reload node identity material without leaking file-format concerns i
 - missing-file bootstrap with the real Ed25519 backend is covered
 - runtime identity publication to dependent modules is covered
 - Windows ACL hardening is covered
+- CLI bootstrap coverage verifies relative keyfile resolution and default keyfile creation under resolved data directories
 
 ## Compatibility Notes
 
@@ -54,8 +56,8 @@ Persist and reload node identity material without leaking file-format concerns i
 
 - map the repository to Lokinet-compatible keyfile expectations
 - add migration or import paths from upstream identity artifacts
-- wire config-derived keyfile paths into the runtime bootstrap path
 - reduce transient secret copies further when the persisted identity format is redesigned
+- add import or migration support from existing Lokinet key artifacts into the internal identity repository
 
 ## Files and Crates Involved
 

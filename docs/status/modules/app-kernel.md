@@ -23,6 +23,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - startup failure rollback for previously started modules
 - explicit declared service dependency checks before wiring
 - identity service publication into the runtime registry
+- runtime identity bootstrap can now be composed from daemon-supplied settings without leaking config types into the kernel crate
 
 ## Partially Implemented Items
 
@@ -46,6 +47,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - service wiring before startup is covered
 - startup rollback on module failure is covered
 - missing declared service dependencies are rejected before wiring
+- runtime-identity module construction from daemon-supplied settings is covered indirectly through CLI bootstrap tests
 
 ## Compatibility Notes
 

@@ -1,5 +1,7 @@
+use std::path::PathBuf;
+
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
-use saferunnet_crypto::KeyGenerator;
+use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::{FileIdentityRepository, IdentitySpec};
 
 pub const NODE_IDENTITY_SERVICE_KEY: &str = "saferunnet.identity.node";
@@ -21,6 +23,17 @@ impl IdentityModule {
             spec,
             generator,
         }
+    }
+
+    pub fn from_runtime_settings(nickname: String, keyfile: PathBuf) -> Self {
+        Self::new(
+            FileIdentityRepository::new(keyfile),
+            IdentitySpec {
+                nickname,
+                algorithm: KeyAlgorithm::Ed25519,
+            },
+            Box::new(Ed25519KeyGenerator::new()),
+        )
     }
 }
 

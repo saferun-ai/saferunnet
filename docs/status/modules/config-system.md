@@ -25,6 +25,7 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - fixture-backed compatibility checks based on upstream Lokinet sample fragments
 - validation for `network.ifaddr`, `network.hops`, and `network.paths`
 - validation that `network.exit=true` requires `network.ifaddr`
+- daemon-side bootstrap now resolves relative `router.data_dir` and `network.keyfile` paths into runtime identity settings
 
 ## Partially Implemented Items
 
@@ -51,6 +52,7 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - Lokinet-style fixture loading is covered
 - exit/ifaddr validation is covered
 - hops/paths validation is covered
+- CLI bootstrap tests cover relative keyfile resolution and default keyfile placement under resolved data directories
 
 ## Compatibility Notes
 
@@ -61,6 +63,7 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - add richer validation rules
 - expand compatibility fixtures from real Lokinet samples
 - add config source layering if Lokinet compatibility requires it
+- expose path-resolution helpers in a more reusable bootstrap surface if more runtime modules need config-derived filesystem paths
 
 ## Files and Crates Involved
 

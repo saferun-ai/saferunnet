@@ -11,4 +11,4 @@
 
 ## Current Focus
 
-Expand the configuration system and app kernel without collapsing module boundaries, while turning the new crypto and identity foundations into config-driven runtime behavior for later network work.
+Expand the configuration system and app kernel without collapsing module boundaries, while turning the new crypto and identity foundations into reusable config-driven runtime behavior for later network work.
