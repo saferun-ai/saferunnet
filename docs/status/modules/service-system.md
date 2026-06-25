@@ -24,7 +24,7 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `ServiceMessageKind::LinkSessionInit` for the first typed link session-init payload family
 - dedicated `ServiceMessageKind::LinkSessionPathSwitch` for the first typed link session path-switch payload family
 - the router-announcement typed family now lives directly in `saferunnet-service`
-- downstream typed consumers now exist in `saferunnet-service` and `saferunnet-link`
+- downstream typed consumers now exist directly in `saferunnet-service`, with `saferunnet-app` consuming that seam
 
 ## Partially Implemented Items
 
@@ -71,6 +71,6 @@ Define higher-level authenticated protocol message objects without leaking raw s
 ## Files and Crates Involved
 
 - `crates/saferunnet-service`
-- `crates/saferunnet-link`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`
+- `crates/saferunnet-app`

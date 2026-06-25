@@ -4,7 +4,7 @@ use saferunnet_app::{
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
-use saferunnet_link::{
+use saferunnet_service::{
     AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedSessionInitMessage,
     AuthenticatedSessionPathSwitchMessage, PathControlMessage, PathPing, SessionHopId,
     SessionInitMessage, SessionPathSwitchMessage, SessionTag,

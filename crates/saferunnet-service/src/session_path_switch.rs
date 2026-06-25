@@ -1,8 +1,9 @@
 use saferunnet_identity::NodeIdentity;
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
 
-use crate::session_types::{SessionHopId, SessionTag};
+use crate::{
+    AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag,
+};
 
 const SESSION_PATH_SWITCH_PAYLOAD_VERSION: u8 = 1;
 const SESSION_HOP_ID_LEN: usize = 16;

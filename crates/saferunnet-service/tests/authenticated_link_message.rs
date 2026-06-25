@@ -3,13 +3,13 @@ use saferunnet_crypto::{
     SignedEnvelopeCodec,
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
-use saferunnet_link::{
-    AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedSessionInitMessage,
-    AuthenticatedSessionPathSwitchMessage, LinkMessageError, PathControlMessage, PathPing,
-    SessionHopId, SessionInitError, SessionInitMessage, SessionPathSwitchError,
-    SessionPathSwitchMessage, SessionTag,
+use saferunnet_service::{
+    AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
+    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, LinkMessageError,
+    PathControlMessage, PathPing, ServiceMessageError, ServiceMessageKind, SessionHopId,
+    SessionInitError, SessionInitMessage, SessionPathSwitchError, SessionPathSwitchMessage,
+    SessionTag,
 };
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 fn make_identity(nickname: &str) -> NodeIdentity {
     let key_pair = Ed25519KeyGenerator::new()

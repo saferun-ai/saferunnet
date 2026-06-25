@@ -11,3 +11,15 @@ This crate owns:
   - `RouterAnnouncement`
   - `AuthenticatedRouterAnnouncement`
   - `RouterAnnouncementError`
+- the typed link families and unified dispatcher boundary:
+  - `PathControlMessage`
+  - `PathPing`
+  - `AuthenticatedPathControlMessage`
+  - `SessionHopId`
+  - `SessionTag`
+  - `SessionInitMessage`
+  - `AuthenticatedSessionInitMessage`
+  - `SessionPathSwitchMessage`
+  - `AuthenticatedSessionPathSwitchMessage`
+  - `AuthenticatedLinkMessage`
+  - `LinkMessageError`

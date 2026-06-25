@@ -7,7 +7,6 @@ members = [
   "crates/saferunnet-config",
   "crates/saferunnet-compat-lokinet",
   "crates/saferunnet-identity",
-  "crates/saferunnet-link",
   "crates/saferunnet-service",
   "crates/saferunnet-observability",
   "crates/saferunnet-testing",

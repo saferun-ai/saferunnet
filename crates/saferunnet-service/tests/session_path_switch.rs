@@ -3,11 +3,10 @@ use saferunnet_crypto::{
     SignedEnvelopeCodec,
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
-use saferunnet_link::{
-    AuthenticatedSessionPathSwitchMessage, SessionHopId, SessionPathSwitchError,
-    SessionPathSwitchMessage, SessionTag,
+use saferunnet_service::{
+    AuthenticatedServiceMessage, AuthenticatedSessionPathSwitchMessage, ServiceMessageError,
+    ServiceMessageKind, SessionHopId, SessionPathSwitchError, SessionPathSwitchMessage, SessionTag,
 };
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 const SESSION_PATH_SWITCH_PAYLOAD_VERSION: u8 = 1;
 

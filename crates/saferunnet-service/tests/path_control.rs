@@ -3,10 +3,10 @@ use saferunnet_crypto::{
     SignedEnvelopeCodec,
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
-use saferunnet_link::{
-    AuthenticatedPathControlMessage, PathControlError, PathControlMessage, PathPing,
+use saferunnet_service::{
+    AuthenticatedPathControlMessage, AuthenticatedServiceMessage, PathControlError,
+    PathControlMessage, PathPing, ServiceMessageKind,
 };
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageKind};
 
 fn make_identity(nickname: &str) -> NodeIdentity {
     let key_pair = Ed25519KeyGenerator::new()

@@ -2,11 +2,25 @@ use saferunnet_crypto::{EnvelopeCodecError, SignatureError, SignedEnvelope, Sign
 use saferunnet_identity::{IdentityProof, IdentityProofError, NodeIdentity};
 use thiserror::Error;
 
+mod link_message;
+mod path_control;
 mod router_announcement;
+mod session_init;
+mod session_path_switch;
+mod session_types;
 
+pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
+pub use path_control::{
+    AuthenticatedPathControlMessage, PathControlError, PathControlMessage, PathPing,
+};
 pub use router_announcement::{
     AuthenticatedRouterAnnouncement, RouterAnnouncement, RouterAnnouncementError, RouterCapability,
 };
+pub use session_init::{AuthenticatedSessionInitMessage, SessionInitError, SessionInitMessage};
+pub use session_path_switch::{
+    AuthenticatedSessionPathSwitchMessage, SessionPathSwitchError, SessionPathSwitchMessage,
+};
+pub use session_types::{SessionHopId, SessionTag};
 
 const SERVICE_FRAME_VERSION: u8 = 1;
 const SERVICE_FRAME_HEADER_LEN: usize = 9;

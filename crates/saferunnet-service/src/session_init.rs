@@ -1,9 +1,8 @@
 use saferunnet_crypto::{KeyAlgorithm, PublicKey};
 use saferunnet_identity::NodeIdentity;
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
 
-use crate::session_types::SessionHopId;
+use crate::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId};
 
 const SESSION_INIT_PAYLOAD_VERSION: u8 = 1;
 const SESSION_HOP_ID_LEN: usize = 16;

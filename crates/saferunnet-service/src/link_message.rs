@@ -1,10 +1,9 @@
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
 
 use crate::{
-    AuthenticatedPathControlMessage, AuthenticatedSessionInitMessage,
-    AuthenticatedSessionPathSwitchMessage, PathControlError, SessionInitError,
-    SessionPathSwitchError,
+    AuthenticatedPathControlMessage, AuthenticatedServiceMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedSessionPathSwitchMessage, PathControlError, ServiceMessageError,
+    ServiceMessageKind, SessionInitError, SessionPathSwitchError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

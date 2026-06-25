@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the first typed link-facing protocol families on top of `saferunnet-service` without introducing transport, socket, DH encryption, or runtime session-management concerns yet.
+Define the first typed link-facing protocol families in `saferunnet-service` without introducing transport, socket, DH encryption, or runtime session-management concerns yet.
 
 ## Public Interfaces
 
@@ -23,7 +23,8 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 
 ## Implemented Items
 
-- `saferunnet-link` is now an active workspace crate
+- typed link families and unified dispatch now live directly in `saferunnet-service`
+- `saferunnet-link` is no longer an active workspace crate and now serves as a placeholder directory
 - deterministic project-owned path-control payload framing
 - deterministic project-owned session-init payload framing
 - deterministic project-owned session-path-switch payload framing
@@ -49,7 +50,7 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - typed path-control dispatch rejects unsupported variants, unsupported versions, truncated ping bodies, and trailing payload bytes
 - typed session-init dispatch rejects unsupported initiator algorithm ids, malformed auth-token framing, truncated auth-token payloads, and trailing payload bytes
 - typed session-path-switch dispatch rejects unsupported versions, truncated payloads, and trailing payload bytes
-- first app/runtime consumer seam for unified link decode via `saferunnet-app::LinkMessageDispatcher`
+- first app/runtime consumer seam for unified link decode via `saferunnet-app::LinkMessageDispatcher`, now backed directly by `saferunnet-service`
 - `saferunnet-app::LinkMessageModule` runtime publication path for the dispatcher through `ServiceRegistry`
 
 ## Partially Implemented Items
@@ -120,7 +121,6 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 
 ## Files and Crates Involved
 
-- `crates/saferunnet-link`
 - `crates/saferunnet-service`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`

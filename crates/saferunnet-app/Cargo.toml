@@ -10,4 +10,4 @@ repository.workspace = true
 saferunnet-core = { path = "../saferunnet-core" }
 saferunnet-crypto = { path = "../saferunnet-crypto" }
 saferunnet-identity = { path = "../saferunnet-identity" }
-saferunnet-link = { path = "../saferunnet-link" }
+saferunnet-service = { path = "../saferunnet-service" }

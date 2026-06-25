@@ -1,6 +1,7 @@
 use saferunnet_identity::NodeIdentity;
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
+
+use crate::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 const PATH_CONTROL_PAYLOAD_VERSION: u8 = 1;
 const PATH_CONTROL_PING_VARIANT_ID: u8 = 1;

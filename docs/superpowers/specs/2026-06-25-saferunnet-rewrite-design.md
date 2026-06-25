@@ -341,8 +341,9 @@ The following interpretation should guide future refactors and merges:
 - `saferunnet-app` remains the runtime composition layer and should stay thin.
 - `saferunnet-config`, `saferunnet-compat-lokinet`, `saferunnet-crypto`, and `saferunnet-identity` are acceptable subsystem boundaries because they isolate distinct concerns.
 - networking concerns such as link, path, router, service-session dispatch, and later transport/session orchestration may begin as separate implementation slices, but they are expected to converge toward a cohesive network-facing subsystem boundary if they prove to be one evolving area.
-- therefore, the current network-facing shape under `crates/saferunnet-link`, `crates/saferunnet-path`, and `crates/saferunnet-service` should be treated as provisional architecture, not a permanent requirement.
+- therefore, the current network-facing shape under `crates/saferunnet-path` and `crates/saferunnet-service` should be treated as provisional architecture, not a permanent requirement.
 - first concrete convergence step completed on 2026-06-25: the router-announcement typed family was merged from `crates/saferunnet-router` into `crates/saferunnet-service` and `saferunnet-router` was removed from active workspace membership.
+- second concrete convergence step completed on 2026-06-25: typed link path-control/session-init/session-path-switch families and unified link-message dispatch were finalized in `crates/saferunnet-service`, `saferunnet-app` switched to direct `saferunnet-service` dependency at the runtime seam, and `saferunnet-link` was removed from active workspace membership.
 - implementation plans and reviews should prefer merging such crates when that reduces coupling and clarifies ownership without creating a god object.
 
 ### 7.4 Merge and Convergence Rules

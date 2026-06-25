@@ -1,5 +1,5 @@
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
-use saferunnet_link::{AuthenticatedLinkMessage, LinkMessageError};
+use saferunnet_service::{AuthenticatedLinkMessage, LinkMessageError};
 
 pub const LINK_MESSAGE_DISPATCHER_SERVICE_KEY: &str = "saferunnet.link.dispatcher";
 

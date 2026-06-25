@@ -280,7 +280,7 @@ dependencies = [
  "saferunnet-core",
  "saferunnet-crypto",
  "saferunnet-identity",
- "saferunnet-link",
+ "saferunnet-service",
 ]
 
 [[package]]
@@ -324,16 +324,6 @@ dependencies = [
  "thiserror",
  "windows-sys",
  "zeroize",
-]
-
-[[package]]
-name = "saferunnet-link"
-version = "0.1.0"
-dependencies = [
- "saferunnet-crypto",
- "saferunnet-identity",
- "saferunnet-service",
- "thiserror",
 ]
 
 [[package]]

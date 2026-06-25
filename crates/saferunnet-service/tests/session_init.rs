@@ -3,10 +3,10 @@ use saferunnet_crypto::{
     SignedEnvelopeCodec,
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
-use saferunnet_link::{
-    AuthenticatedSessionInitMessage, SessionHopId, SessionInitError, SessionInitMessage,
+use saferunnet_service::{
+    AuthenticatedServiceMessage, AuthenticatedSessionInitMessage, ServiceMessageError,
+    ServiceMessageKind, SessionHopId, SessionInitError, SessionInitMessage,
 };
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 const SESSION_INIT_PAYLOAD_VERSION: u8 = 1;
 const ED25519_ALGORITHM_ID: u8 = 1;
