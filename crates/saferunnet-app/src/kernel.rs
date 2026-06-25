@@ -40,9 +40,13 @@ impl AppKernel {
         }
 
         self.state = LifecycleState::Starting;
-        for module in &mut self.modules {
+        for (started, module) in self.modules.iter_mut().enumerate() {
             module.wire(&self.services)?;
-            module.start()?;
+            if let Err(error) = module.start() {
+                self.rollback_started_modules(started)?;
+                self.state = LifecycleState::Stopped;
+                return Err(error);
+            }
         }
         self.state = LifecycleState::Running;
         Ok(())
@@ -61,6 +65,13 @@ impl AppKernel {
             module.stop()?;
         }
         self.state = LifecycleState::Stopped;
+        Ok(())
+    }
+
+    fn rollback_started_modules(&mut self, started: usize) -> Result<(), ModuleError> {
+        for module in self.modules[..started].iter_mut().rev() {
+            module.stop()?;
+        }
         Ok(())
     }
 }

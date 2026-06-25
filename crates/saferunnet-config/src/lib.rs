@@ -105,6 +105,16 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
         .and_then(|network| network.get("exit-node"))
         .cloned()
         .unwrap_or_default();
+    let hops = parse_optional_nonzero_u8(raw.sections.get("network"), "hops")?;
+    let paths = parse_optional_nonzero_u8(raw.sections.get("network"), "paths")?;
+
+    validate_ifaddr(ifaddr.as_deref())?;
+    if exit && ifaddr.is_none() {
+        return Err(ConfigError::InvalidValue {
+            field: "network.ifaddr",
+            reason: "value is required when network.exit is enabled",
+        });
+    }
 
     Ok(NormalizedConfig {
         router: RouterConfig { nickname, data_dir },
@@ -115,6 +125,8 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
             keyfile,
             ifaddr,
             exit_nodes,
+            hops,
+            paths,
         },
     })
 }
@@ -193,4 +205,60 @@ fn parse_bool(
 
 fn last_value(section: &BTreeMap<String, Vec<String>>, key: &str) -> Option<String> {
     section.get(key).and_then(|values| values.last()).cloned()
+}
+
+fn parse_optional_nonzero_u8(
+    section: Option<&BTreeMap<String, Vec<String>>>,
+    key: &'static str,
+) -> Result<Option<u8>, ConfigError> {
+    let Some(raw_value) = section.and_then(|section| last_value(section, key)) else {
+        return Ok(None);
+    };
+
+    let value = raw_value
+        .trim()
+        .parse::<u8>()
+        .map_err(|_| ConfigError::InvalidValue {
+            field: match key {
+                "hops" => "network.hops",
+                "paths" => "network.paths",
+                _ => key,
+            },
+            reason: "expected a positive integer",
+        })?;
+
+    if value == 0 {
+        return Err(ConfigError::InvalidValue {
+            field: match key {
+                "hops" => "network.hops",
+                "paths" => "network.paths",
+                _ => key,
+            },
+            reason: "expected a positive integer",
+        });
+    }
+
+    Ok(Some(value))
+}
+
+fn validate_ifaddr(ifaddr: Option<&str>) -> Result<(), ConfigError> {
+    let Some(ifaddr) = ifaddr else {
+        return Ok(());
+    };
+
+    let Some((ip, prefix)) = ifaddr.split_once('/') else {
+        return Err(ConfigError::InvalidValue {
+            field: "network.ifaddr",
+            reason: "expected CIDR notation like 10.0.0.1/16",
+        });
+    };
+
+    if ip.trim().is_empty() || prefix.trim().is_empty() || prefix.parse::<u8>().is_err() {
+        return Err(ConfigError::InvalidValue {
+            field: "network.ifaddr",
+            reason: "expected CIDR notation like 10.0.0.1/16",
+        });
+    }
+
+    Ok(())
 }

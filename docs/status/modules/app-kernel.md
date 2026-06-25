@@ -19,6 +19,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - reverse shutdown ordering
 - typed service registry
 - module wiring before startup
+- startup failure rollback for previously started modules
 
 ## Partially Implemented Items
 
@@ -26,9 +27,9 @@ Own startup, shutdown, state transitions, and module orchestration.
 
 ## Not Yet Implemented
 
-- shutdown rollback
 - richer module error categories
 - declarative service dependency contracts
+- rollback handling for partial wire/setup failures
 
 ## Known Risks
 
@@ -39,6 +40,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - lifecycle ordering tests pass
 - duplicate start protection is covered
 - service wiring before startup is covered
+- startup rollback on module failure is covered
 
 ## Compatibility Notes
 

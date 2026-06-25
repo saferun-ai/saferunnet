@@ -16,6 +16,8 @@ pub struct NetworkConfig {
     pub keyfile: Option<String>,
     pub ifaddr: Option<String>,
     pub exit_nodes: Vec<String>,
+    pub hops: Option<u8>,
+    pub paths: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

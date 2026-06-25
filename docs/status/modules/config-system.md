@@ -23,6 +23,8 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - repeated `network.exit-node` preservation
 - normalized `network.keyfile`, `network.ifaddr`, and `network.exit_nodes`
 - fixture-backed compatibility checks based on upstream Lokinet sample fragments
+- validation for `network.ifaddr`, `network.hops`, and `network.paths`
+- validation that `network.exit=true` requires `network.ifaddr`
 
 ## Partially Implemented Items
 
@@ -47,6 +49,8 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - blank nickname validation is covered
 - layered config merging is covered
 - Lokinet-style fixture loading is covered
+- exit/ifaddr validation is covered
+- hops/paths validation is covered
 
 ## Compatibility Notes
 

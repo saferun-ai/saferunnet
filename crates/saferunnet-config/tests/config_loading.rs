@@ -109,6 +109,7 @@ fn load_from_path_merges_conf_d_files_in_lexical_order() {
         [network]
         exit=true
         reachable=1
+        ifaddr=10.0.0.1/16
         "#,
     )
     .unwrap();
@@ -153,4 +154,64 @@ fn load_from_path_supports_lokinet_style_fixture_layers() {
         config.network.keyfile.as_deref(),
         Some("lokinet-addr.privkey")
     );
+}
+
+#[test]
+fn load_from_str_rejects_exit_without_ifaddr() {
+    let error = load_from_str(
+        r#"
+        [router]
+        nickname=edge-a
+
+        [network]
+        exit=true
+        reachable=1
+        "#,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("network.ifaddr"));
+}
+
+#[test]
+fn load_from_str_rejects_invalid_ifaddr_shape() {
+    let error = load_from_str(
+        r#"
+        [router]
+        nickname=edge-a
+
+        [network]
+        ifaddr=10.0.0.1
+        "#,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("network.ifaddr"));
+}
+
+#[test]
+fn load_from_str_rejects_zero_hops_or_paths() {
+    let error = load_from_str(
+        r#"
+        [router]
+        nickname=edge-a
+
+        [network]
+        hops=0
+        "#,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("network.hops"));
+
+    let error = load_from_str(
+        r#"
+        [router]
+        nickname=edge-a
+
+        [network]
+        paths=0
+        "#,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("network.paths"));
 }
