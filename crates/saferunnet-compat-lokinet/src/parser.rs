@@ -4,7 +4,7 @@ use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawLokinetConfig {
-    pub sections: BTreeMap<String, BTreeMap<String, String>>,
+    pub sections: BTreeMap<String, BTreeMap<String, Vec<String>>>,
 }
 
 #[derive(Debug, Error)]
@@ -52,7 +52,9 @@ pub fn parse(input: &str) -> Result<RawLokinetConfig, ParseError> {
         sections
             .entry(section_name)
             .or_insert_with(BTreeMap::new)
-            .insert(key.trim().to_string(), value.trim().to_string());
+            .entry(key.trim().to_string())
+            .or_insert_with(Vec::new)
+            .push(value.trim().to_string());
     }
 
     Ok(RawLokinetConfig { sections })

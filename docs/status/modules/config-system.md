@@ -19,10 +19,15 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - actionable line-number parse diagnostics
 - file-based config loading
 - blank router nickname validation
+- `conf.d`-style layered path loading
+- repeated `network.exit-node` preservation
+- normalized `network.keyfile`, `network.ifaddr`, and `network.exit_nodes`
+- fixture-backed compatibility checks based on upstream Lokinet sample fragments
 
 ## Partially Implemented Items
 
 - validation exists for a small subset of fields only
+- repeated-key preservation exists, but only a subset is normalized into typed fields
 
 ## Not Yet Implemented
 
@@ -40,6 +45,8 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - invalid line diagnostics are covered
 - file-based loading is covered
 - blank nickname validation is covered
+- layered config merging is covered
+- Lokinet-style fixture loading is covered
 
 ## Compatibility Notes
 
@@ -48,7 +55,7 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 ## Next Recommended Tasks
 
 - add richer validation rules
-- add compatibility fixtures from real Lokinet samples
+- expand compatibility fixtures from real Lokinet samples
 - add config source layering if Lokinet compatibility requires it
 
 ## Files and Crates Involved

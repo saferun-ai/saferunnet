@@ -10,7 +10,17 @@ pub struct LoggingConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NetworkConfig {
+    pub exit: bool,
+    pub reachable: bool,
+    pub keyfile: Option<String>,
+    pub ifaddr: Option<String>,
+    pub exit_nodes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedConfig {
     pub router: RouterConfig,
     pub logging: LoggingConfig,
+    pub network: NetworkConfig,
 }
