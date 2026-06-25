@@ -1,3 +1,3 @@
 # saferunnet-service
 
-Reserved for a future implementation crate. This directory exists now so the source tree matches the approved architecture before protocol work begins.
+Project-owned higher-level authenticated message crate built on top of `saferunnet-identity` and `saferunnet-crypto`.

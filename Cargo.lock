@@ -335,6 +335,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "saferunnet-service"
+version = "0.1.0"
+dependencies = [
+ "saferunnet-crypto",
+ "saferunnet-identity",
+ "thiserror",
+]
+
+[[package]]
 name = "saferunnet-testing"
 version = "0.1.0"
 
