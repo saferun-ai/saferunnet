@@ -5,10 +5,10 @@ use saferunnet_crypto::{
 use saferunnet_identity::{IdentityProof, NodeIdentity};
 use saferunnet_service::{
     AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
-    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, LinkMessageError,
-    PathControlMessage, PathPing, ServiceMessageError, ServiceMessageKind, SessionHopId,
-    SessionInitError, SessionInitMessage, SessionPathSwitchError, SessionPathSwitchMessage,
-    SessionTag,
+    AuthenticatedSessionAcceptMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedSessionPathSwitchMessage, LinkMessageError, PathControlMessage, PathPing,
+    ServiceMessageError, ServiceMessageKind, SessionAcceptMessage, SessionHopId, SessionInitError,
+    SessionInitMessage, SessionPathSwitchError, SessionPathSwitchMessage, SessionTag,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -110,6 +110,31 @@ fn decode_dispatch_round_trip_session_init() {
             inner.verify().expect("decoded session-init should verify");
         }
         _ => panic!("expected session-init variant"),
+    }
+}
+
+#[test]
+fn decode_dispatch_round_trip_session_accept() {
+    let identity = make_identity("alice");
+    let encoded = AuthenticatedSessionAcceptMessage::sign(
+        &identity,
+        SessionAcceptMessage {
+            session_tag: SessionTag::new(55),
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::SessionAccept(inner) => {
+            assert_eq!(inner.message().session_tag, SessionTag::new(55));
+            inner
+                .verify()
+                .expect("decoded session-accept should verify");
+        }
+        _ => panic!("expected session-accept variant"),
     }
 }
 

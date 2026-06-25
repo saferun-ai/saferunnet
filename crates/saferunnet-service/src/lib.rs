@@ -5,8 +5,10 @@ use thiserror::Error;
 mod link_message;
 mod path_control;
 mod router_announcement;
+mod session_accept;
 mod session_init;
 mod session_path_switch;
+mod session_state;
 mod session_types;
 
 pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
@@ -16,10 +18,14 @@ pub use path_control::{
 pub use router_announcement::{
     AuthenticatedRouterAnnouncement, RouterAnnouncement, RouterAnnouncementError, RouterCapability,
 };
+pub use session_accept::{
+    AuthenticatedSessionAcceptMessage, SessionAcceptError, SessionAcceptMessage,
+};
 pub use session_init::{AuthenticatedSessionInitMessage, SessionInitError, SessionInitMessage};
 pub use session_path_switch::{
     AuthenticatedSessionPathSwitchMessage, SessionPathSwitchError, SessionPathSwitchMessage,
 };
+pub use session_state::{ActiveSession, SessionState, SessionStateError};
 pub use session_types::{SessionHopId, SessionTag};
 
 const SERVICE_FRAME_VERSION: u8 = 1;
@@ -34,6 +40,7 @@ pub enum ServiceMessageKind {
     LinkPathControl,
     LinkSessionInit,
     LinkSessionPathSwitch,
+    LinkSessionAccept,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -278,6 +285,7 @@ fn encode_kind(kind: ServiceMessageKind) -> u8 {
         ServiceMessageKind::LinkPathControl => 3,
         ServiceMessageKind::LinkSessionInit => 4,
         ServiceMessageKind::LinkSessionPathSwitch => 5,
+        ServiceMessageKind::LinkSessionAccept => 6,
     }
 }
 
@@ -288,6 +296,7 @@ fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
         3 => Ok(ServiceMessageKind::LinkPathControl),
         4 => Ok(ServiceMessageKind::LinkSessionInit),
         5 => Ok(ServiceMessageKind::LinkSessionPathSwitch),
+        6 => Ok(ServiceMessageKind::LinkSessionAccept),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),

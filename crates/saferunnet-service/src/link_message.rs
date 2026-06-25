@@ -1,15 +1,17 @@
 use thiserror::Error;
 
 use crate::{
-    AuthenticatedPathControlMessage, AuthenticatedServiceMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
+    AuthenticatedSessionAcceptMessage, AuthenticatedSessionInitMessage,
     AuthenticatedSessionPathSwitchMessage, PathControlError, ServiceMessageError,
-    ServiceMessageKind, SessionInitError, SessionPathSwitchError,
+    ServiceMessageKind, SessionAcceptError, SessionInitError, SessionPathSwitchError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthenticatedLinkMessage {
     PathControl(AuthenticatedPathControlMessage),
     SessionInit(AuthenticatedSessionInitMessage),
+    SessionAccept(AuthenticatedSessionAcceptMessage),
     SessionPathSwitch(AuthenticatedSessionPathSwitchMessage),
 }
 
@@ -32,6 +34,7 @@ impl AuthenticatedLinkMessage {
         match self {
             Self::PathControl(message) => message.service_message(),
             Self::SessionInit(message) => message.service_message(),
+            Self::SessionAccept(message) => message.service_message(),
             Self::SessionPathSwitch(message) => message.service_message(),
         }
     }
@@ -47,6 +50,11 @@ impl AuthenticatedLinkMessage {
             )),
             ServiceMessageKind::LinkSessionInit => Ok(Self::SessionInit(
                 AuthenticatedSessionInitMessage::from_authenticated_service_message(
+                    service_message,
+                )?,
+            )),
+            ServiceMessageKind::LinkSessionAccept => Ok(Self::SessionAccept(
+                AuthenticatedSessionAcceptMessage::from_authenticated_service_message(
                     service_message,
                 )?,
             )),
@@ -70,6 +78,8 @@ pub enum LinkMessageError {
     PathControl(#[from] PathControlError),
     #[error(transparent)]
     SessionInit(#[from] SessionInitError),
+    #[error(transparent)]
+    SessionAccept(#[from] SessionAcceptError),
     #[error(transparent)]
     SessionPathSwitch(#[from] SessionPathSwitchError),
 }

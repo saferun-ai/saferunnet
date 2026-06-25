@@ -1,7 +1,12 @@
+use std::sync::{Arc, Mutex};
+
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
-use saferunnet_service::{AuthenticatedLinkMessage, LinkMessageError};
+use saferunnet_service::{AuthenticatedLinkMessage, LinkMessageError, SessionState};
 
 pub const LINK_MESSAGE_DISPATCHER_SERVICE_KEY: &str = "saferunnet.link.dispatcher";
+pub const LINK_SESSION_STATE_SERVICE_KEY: &str = "saferunnet.link.session-state";
+
+pub type LinkSessionState = Arc<Mutex<SessionState>>;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct LinkMessageDispatcher;
@@ -49,6 +54,48 @@ impl RuntimeModule for LinkMessageModule {
             LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
             LinkMessageDispatcher::new(),
         );
+        Ok(())
+    }
+
+    fn start(&mut self) -> Result<(), ModuleError> {
+        Ok(())
+    }
+
+    fn stop(&mut self) -> Result<(), ModuleError> {
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LinkSessionStateModule {
+    state: LinkSessionState,
+}
+
+impl Default for LinkSessionStateModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LinkSessionStateModule {
+    pub fn new() -> Self {
+        Self {
+            state: Arc::new(Mutex::new(SessionState::new())),
+        }
+    }
+
+    pub fn from_shared_state(state: LinkSessionState) -> Self {
+        Self { state }
+    }
+}
+
+impl RuntimeModule for LinkSessionStateModule {
+    fn name(&self) -> &'static str {
+        "link-session-state"
+    }
+
+    fn register_services(&mut self, services: &mut ServiceRegistry) -> Result<(), ModuleError> {
+        services.insert_named(LINK_SESSION_STATE_SERVICE_KEY, self.state.clone());
         Ok(())
     }
 

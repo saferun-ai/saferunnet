@@ -120,6 +120,8 @@ Practical consequence:
 - if several crates are found to be one tightly related subsystem in practice, they should be merged into a coarser subsystem boundary instead of preserved as separate library-style crates for their own sake.
 - a binary entrypoint such as `apps/saferunnetd` must stay thin; moving everything into the binary is not the goal.
 - the preferred outcome is a small number of cohesive subsystem crates plus thin app entrypoints.
+- for avoidance of doubt, `crates/` is a Rust workspace packaging mechanism used here to host subsystem modules; it must not be interpreted as a commitment to expose or preserve dozens of reusable internal libraries.
+- if a crate boundary stops reflecting a real subsystem boundary, the architecture expectation is to remove or merge that boundary instead of defending it as a packaging convention.
 
 ## 5. Phase Strategy
 
@@ -371,6 +373,20 @@ Operational rule:
 - convergence should happen inside `crates/` by forming larger cohesive subsystem crates, not by pushing subsystem internals into app entrypoints
 - every accepted merge must update this spec, the affected module status files, and the session log so the next session inherits the new structure without re-discovery
 - the current network-facing crates should continue to be evaluated for convergence until the final layout reflects cohesive subsystems rather than protocol-fragment crates
+
+### 7.5 Current Structural Direction
+
+The current workspace layout should be read as a transition plan, not as proof that the final architecture will contain the same number of crates.
+
+Required reading for future implementation sessions:
+
+- `crates/saferunnet-app` is intentionally thin and corresponds to top-level runtime composition, dependency wiring, lifecycle, and module registration.
+- subsystem behavior belongs behind subsystem-owned modules or subsystem crates, not inside `apps/saferunnetd`.
+- `apps/saferunnetd` exists to build the final `saferunnet` binary and to host minimal process-entry concerns such as CLI startup and process wiring.
+- therefore, moving subsystem code from `crates/` into `apps/saferunnetd` would be a regression in architecture, not an improvement in modularity.
+- the real architectural question is not "should this live in `crates/` or `apps/`?" but "does this boundary represent a cohesive subsystem, or should several crates be merged into one clearer subsystem module?"
+- until the network/runtime area stabilizes, implementation work should bias toward internal modules first and add or preserve crate boundaries only when they express a durable subsystem seam.
+- when in doubt, prefer fewer, larger, well-tested subsystem crates over many small library-style crates with narrow forwarding APIs.
 
 ## 8. Configuration Compatibility Strategy
 

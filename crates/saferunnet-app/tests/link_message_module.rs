@@ -5,9 +5,10 @@ use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{
-    AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedSessionInitMessage,
-    AuthenticatedSessionPathSwitchMessage, PathControlMessage, PathPing, SessionHopId,
-    SessionInitMessage, SessionPathSwitchMessage, SessionTag,
+    AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedSessionAcceptMessage,
+    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, PathControlMessage,
+    PathPing, SessionAcceptMessage, SessionHopId, SessionInitMessage, SessionPathSwitchMessage,
+    SessionTag,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -57,6 +58,18 @@ fn encoded_session_path_switch(identity: &NodeIdentity) -> Vec<u8> {
         SessionPathSwitchMessage {
             local_pivot: hop(0x33),
             remote_pivot: hop(0x44),
+            session_tag: SessionTag::new(77),
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed")
+}
+
+fn encoded_session_accept(identity: &NodeIdentity) -> Vec<u8> {
+    AuthenticatedSessionAcceptMessage::sign(
+        identity,
+        SessionAcceptMessage {
             session_tag: SessionTag::new(77),
         },
     )
@@ -152,6 +165,20 @@ impl RuntimeModule for LinkConsumerModule {
             }
         }
 
+        let accept = dispatcher
+            .decode_verified(&encoded_session_accept(&identity))
+            .expect("session-accept should decode");
+        match accept {
+            AuthenticatedLinkMessage::SessionAccept(_) => {
+                self.decoded_families.push("session-accept")
+            }
+            _ => {
+                return Err(ModuleError::Lifecycle(
+                    "unexpected family while decoding session-accept".to_string(),
+                ));
+            }
+        }
+
         let switch = dispatcher
             .decode_verified(&encoded_session_path_switch(&identity))
             .expect("session-path-switch should decode");
@@ -172,7 +199,12 @@ impl RuntimeModule for LinkConsumerModule {
     fn start(&mut self) -> Result<(), ModuleError> {
         assert_eq!(
             self.decoded_families,
-            ["path-control", "session-init", "session-path-switch"]
+            [
+                "path-control",
+                "session-init",
+                "session-accept",
+                "session-path-switch",
+            ]
         );
         Ok(())
     }
