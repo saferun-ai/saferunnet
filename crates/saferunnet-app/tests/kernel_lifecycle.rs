@@ -1,6 +1,11 @@
-use saferunnet_app::AppKernel;
+use saferunnet_app::{AppKernel, IdentityModule, NODE_IDENTITY_SERVICE_KEY};
 use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_crypto::{
+    KeyAlgorithm, KeyGenerationError, KeyGenerator, KeyPair, PublicKey, SecretKey,
+};
+use saferunnet_identity::{FileIdentityRepository, IdentitySpec, NodeIdentity};
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 struct RecordingModule {
     name: &'static str,
@@ -188,4 +193,95 @@ fn kernel_rejects_missing_declared_service_dependencies_before_wiring() {
     assert!(error.to_string().contains("contract"));
     assert!(error.to_string().contains("SharedNickname"));
     assert_eq!(kernel.state(), LifecycleState::Stopped);
+}
+
+fn temp_identity_path() -> std::path::PathBuf {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    std::env::temp_dir().join(format!("saferunnet-kernel-identity-{unique}.txt"))
+}
+
+struct FixedKeyGenerator;
+
+impl KeyGenerator for FixedKeyGenerator {
+    fn generate(&self, algorithm: KeyAlgorithm) -> Result<KeyPair, KeyGenerationError> {
+        assert_eq!(algorithm, KeyAlgorithm::Ed25519);
+
+        Ok(KeyPair {
+            secret_key: SecretKey::from_hex(
+                KeyAlgorithm::Ed25519,
+                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            )
+            .unwrap(),
+            public_key: PublicKey::from_hex(
+                KeyAlgorithm::Ed25519,
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            )
+            .unwrap(),
+        })
+    }
+}
+
+struct IdentityConsumerModule {
+    captured: Option<String>,
+}
+
+impl RuntimeModule for IdentityConsumerModule {
+    fn name(&self) -> &'static str {
+        "identity-consumer"
+    }
+
+    fn required_service_keys(&self) -> &'static [&'static str] {
+        &[NODE_IDENTITY_SERVICE_KEY]
+    }
+
+    fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {
+        let identity = services
+            .get::<NodeIdentity>()
+            .ok_or_else(|| ModuleError::Lifecycle("missing NodeIdentity".to_string()))?;
+        self.captured = Some(identity.nickname.clone());
+        Ok(())
+    }
+
+    fn start(&mut self) -> Result<(), ModuleError> {
+        assert_eq!(self.captured.as_deref(), Some("runtime-node"));
+        Ok(())
+    }
+
+    fn stop(&mut self) -> Result<(), ModuleError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn kernel_allows_identity_module_to_publish_services_for_dependents() {
+    let path = temp_identity_path();
+    let mut kernel = AppKernel::new();
+    kernel.register(Box::new(IdentityModule::new(
+        FileIdentityRepository::new(path.clone()),
+        IdentitySpec {
+            nickname: "runtime-node".to_string(),
+            algorithm: KeyAlgorithm::Ed25519,
+        },
+        Box::new(FixedKeyGenerator),
+    )));
+    kernel.register(Box::new(IdentityConsumerModule { captured: None }));
+
+    kernel.start().unwrap();
+
+    let identity = kernel.services().get::<NodeIdentity>().unwrap();
+    assert_eq!(identity.nickname, "runtime-node");
+    assert_eq!(identity.algorithm, KeyAlgorithm::Ed25519);
+    assert_eq!(
+        identity.secret_key.to_hex(),
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    );
+    assert_eq!(
+        identity.public_key.to_hex(),
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    );
+
+    let _ = std::fs::remove_file(path);
 }

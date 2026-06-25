@@ -18,9 +18,11 @@ Own startup, shutdown, state transitions, and module orchestration.
 - startup ordering
 - reverse shutdown ordering
 - typed service registry
+- module-provided service registration before dependency wiring
 - module wiring before startup
 - startup failure rollback for previously started modules
 - explicit declared service dependency checks before wiring
+- identity service publication into the runtime registry
 
 ## Partially Implemented Items
 
@@ -29,7 +31,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 ## Not Yet Implemented
 
 - richer module error categories
-- rollback handling for partial wire/setup failures
+- rollback handling for partial service-registration or wire failures
 - richer typed dependency descriptors beyond string keys
 
 ## Known Risks
@@ -40,6 +42,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 
 - lifecycle ordering tests pass
 - duplicate start protection is covered
+- module-published services are available to dependents before startup
 - service wiring before startup is covered
 - startup rollback on module failure is covered
 - missing declared service dependencies are rejected before wiring
@@ -50,7 +53,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 
 ## Next Recommended Tasks
 
-- add structured shutdown rollback
+- add rollback handling for service-registration failures
 - replace string-key dependency contracts with richer typed descriptors
 - add richer module error categories
 

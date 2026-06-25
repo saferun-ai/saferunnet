@@ -105,6 +105,8 @@ name = "saferunnet-app"
 version = "0.1.0"
 dependencies = [
  "saferunnet-core",
+ "saferunnet-crypto",
+ "saferunnet-identity",
 ]
 
 [[package]]
@@ -127,6 +129,21 @@ dependencies = [
 name = "saferunnet-core"
 version = "0.1.0"
 dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "saferunnet-crypto"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "saferunnet-identity"
+version = "0.1.0"
+dependencies = [
+ "saferunnet-crypto",
  "thiserror",
 ]
 

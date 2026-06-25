@@ -10,6 +10,9 @@ pub enum ModuleError {
 
 pub trait RuntimeModule {
     fn name(&self) -> &'static str;
+    fn register_services(&mut self, _services: &mut ServiceRegistry) -> Result<(), ModuleError> {
+        Ok(())
+    }
     fn required_service_keys(&self) -> &'static [&'static str] {
         &[]
     }

@@ -3,8 +3,10 @@ members = [
   "apps/saferunnetd",
   "crates/saferunnet-app",
   "crates/saferunnet-core",
+  "crates/saferunnet-crypto",
   "crates/saferunnet-config",
   "crates/saferunnet-compat-lokinet",
+  "crates/saferunnet-identity",
   "crates/saferunnet-observability",
   "crates/saferunnet-testing",
 ]

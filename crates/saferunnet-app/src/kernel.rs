@@ -40,6 +40,9 @@ impl AppKernel {
         }
 
         self.state = LifecycleState::Starting;
+        for module in &mut self.modules {
+            module.register_services(&mut self.services)?;
+        }
         for (started, module) in self.modules.iter_mut().enumerate() {
             for required in module.required_service_keys() {
                 if !self.services.contains_key(required) {

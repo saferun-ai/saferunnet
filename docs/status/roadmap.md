@@ -11,4 +11,4 @@
 
 ## Current Focus
 
-Expand the configuration system and app kernel without collapsing module boundaries.
+Expand the configuration system and app kernel without collapsing module boundaries, while turning crypto and identity scaffolding into runtime-usable contracts for later network work.
