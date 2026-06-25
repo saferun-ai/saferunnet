@@ -281,6 +281,139 @@ impl SignedEnvelope {
     }
 }
 
+pub struct SignedEnvelopeCodec;
+
+impl SignedEnvelopeCodec {
+    const VERSION: u8 = 1;
+    const HEADER_LEN: usize = 11;
+
+    pub fn encode(envelope: &SignedEnvelope) -> Result<Vec<u8>, EnvelopeCodecError> {
+        let signer_bytes = envelope.signer().to_bytes();
+        let signature_bytes = envelope.signature().to_bytes();
+        let payload = envelope.payload();
+        let signer_len =
+            u16::try_from(signer_bytes.len()).map_err(|_| EnvelopeCodecError::LengthOverflow {
+                field: "signer",
+                length: signer_bytes.len(),
+                max: u16::MAX as usize,
+            })?;
+        let signature_len = u16::try_from(signature_bytes.len()).map_err(|_| {
+            EnvelopeCodecError::LengthOverflow {
+                field: "signature",
+                length: signature_bytes.len(),
+                max: u16::MAX as usize,
+            }
+        })?;
+        let payload_len =
+            u32::try_from(payload.len()).map_err(|_| EnvelopeCodecError::LengthOverflow {
+                field: "payload",
+                length: payload.len(),
+                max: u32::MAX as usize,
+            })?;
+        let mut encoded = Vec::with_capacity(
+            Self::HEADER_LEN + signer_bytes.len() + signature_bytes.len() + payload.len(),
+        );
+
+        encoded.push(Self::VERSION);
+        encoded.push(encode_algorithm(envelope.signer().algorithm()));
+        encoded.push(encode_algorithm(envelope.signature().algorithm()));
+        encoded.extend_from_slice(&signer_len.to_be_bytes());
+        encoded.extend_from_slice(&signature_len.to_be_bytes());
+        encoded.extend_from_slice(&payload_len.to_be_bytes());
+        encoded.extend_from_slice(&signer_bytes);
+        encoded.extend_from_slice(&signature_bytes);
+        encoded.extend_from_slice(payload);
+        Ok(encoded)
+    }
+
+    pub fn decode(input: &[u8]) -> Result<SignedEnvelope, EnvelopeCodecError> {
+        if input.len() < Self::HEADER_LEN {
+            return Err(EnvelopeCodecError::Truncated);
+        }
+
+        let mut cursor = input;
+        let version = take_exact(&mut cursor, 1)?[0];
+        if version != Self::VERSION {
+            return Err(EnvelopeCodecError::UnsupportedVersion(version));
+        }
+
+        let signer_algorithm = decode_algorithm(take_exact(&mut cursor, 1)?[0])?;
+        let signature_algorithm = decode_algorithm(take_exact(&mut cursor, 1)?[0])?;
+
+        let signer_len = u16::from_be_bytes(
+            take_exact(&mut cursor, 2)?
+                .try_into()
+                .expect("take_exact guarantees exact byte count"),
+        ) as usize;
+        let signature_len = u16::from_be_bytes(
+            take_exact(&mut cursor, 2)?
+                .try_into()
+                .expect("take_exact guarantees exact byte count"),
+        ) as usize;
+        let payload_len = u32::from_be_bytes(
+            take_exact(&mut cursor, 4)?
+                .try_into()
+                .expect("take_exact guarantees exact byte count"),
+        ) as usize;
+
+        if signer_len != 32 {
+            return Err(EnvelopeCodecError::InvalidSignerLength(signer_len));
+        }
+        if signature_len != expected_signature_length(signature_algorithm) {
+            return Err(EnvelopeCodecError::InvalidSignatureLength {
+                algorithm: signature_algorithm.as_str(),
+                length: signature_len,
+            });
+        }
+
+        let signer_bytes: [u8; 32] = take_exact(&mut cursor, signer_len)?
+            .try_into()
+            .expect("validated signer length must be 32 bytes");
+        let signature = Signature::from_bytes(
+            signature_algorithm,
+            take_exact(&mut cursor, signature_len)?.to_vec(),
+        );
+        let payload = take_exact(&mut cursor, payload_len)?.to_vec();
+
+        if !cursor.is_empty() {
+            return Err(EnvelopeCodecError::Malformed);
+        }
+
+        Ok(SignedEnvelope::from_parts(
+            payload,
+            PublicKey::from_bytes(signer_algorithm, signer_bytes),
+            signature,
+        ))
+    }
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum EnvelopeCodecError {
+    #[error("unsupported signed envelope codec version `{0}`")]
+    UnsupportedVersion(u8),
+    #[error("unsupported key algorithm id `{0}` in signed envelope codec")]
+    UnsupportedAlgorithm(u8),
+    #[error("invalid signer length `{0}` in signed envelope codec")]
+    InvalidSignerLength(usize),
+    #[error(
+        "invalid signature length `{length}` for algorithm `{algorithm}` in signed envelope codec"
+    )]
+    InvalidSignatureLength {
+        algorithm: &'static str,
+        length: usize,
+    },
+    #[error("length overflow for `{field}` in signed envelope codec: `{length}` exceeds `{max}`")]
+    LengthOverflow {
+        field: &'static str,
+        length: usize,
+        max: usize,
+    },
+    #[error("truncated signed envelope bytes")]
+    Truncated,
+    #[error("malformed signed envelope bytes")]
+    Malformed,
+}
+
 #[derive(Debug, Error)]
 pub enum KeyMaterialError {
     #[error("unsupported key algorithm `{0}`")]
@@ -341,4 +474,33 @@ fn encode_hex_into(input: &[u8; 32], output: &mut String) {
         use std::fmt::Write as _;
         let _ = write!(output, "{byte:02x}");
     }
+}
+
+fn encode_algorithm(algorithm: KeyAlgorithm) -> u8 {
+    match algorithm {
+        KeyAlgorithm::Ed25519 => 1,
+    }
+}
+
+fn decode_algorithm(encoded: u8) -> Result<KeyAlgorithm, EnvelopeCodecError> {
+    match encoded {
+        1 => Ok(KeyAlgorithm::Ed25519),
+        _ => Err(EnvelopeCodecError::UnsupportedAlgorithm(encoded)),
+    }
+}
+
+fn expected_signature_length(algorithm: KeyAlgorithm) -> usize {
+    match algorithm {
+        KeyAlgorithm::Ed25519 => 64,
+    }
+}
+
+fn take_exact<'a>(input: &mut &'a [u8], count: usize) -> Result<&'a [u8], EnvelopeCodecError> {
+    if input.len() < count {
+        return Err(EnvelopeCodecError::Truncated);
+    }
+
+    let (head, tail) = input.split_at(count);
+    *input = tail;
+    Ok(head)
 }

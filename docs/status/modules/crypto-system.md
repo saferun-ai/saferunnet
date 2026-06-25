@@ -13,6 +13,9 @@ Define project-owned cryptographic key material contracts without forcing the re
 - `SecretKey`
 - `Signature`
 - `SignatureError`
+- `SignedEnvelope`
+- `SignedEnvelopeCodec`
+- `EnvelopeCodecError`
 
 ## Implemented Items
 
@@ -27,6 +30,8 @@ Define project-owned cryptographic key material contracts without forcing the re
 - project-owned signature container with algorithm tagging and verification diagnostics
 - project-owned signed-envelope boundary for protocol-facing payloads
 - explicit expected-signer verification for peer-bound envelope checks
+- project-owned signed-envelope codec with deterministic versioned framing
+- codec-side malformed-length rejection for encoded envelopes
 
 ## Partially Implemented Items
 
@@ -61,16 +66,22 @@ Define project-owned cryptographic key material contracts without forcing the re
 - signed-envelope tamper detection is covered
 - signed-envelope binary payload preservation is covered
 - signed-envelope expected-signer rejection is covered
+- signed-envelope codec round-trip behavior is covered
+- signed-envelope codec truncated-input rejection is covered
+- signed-envelope codec unsupported-version rejection is covered
+- signed-envelope codec overlong-signature encode rejection is covered
+- signed-envelope codec invalid-signature-length decode rejection is covered
 
 ## Compatibility Notes
 
 - naming aligns with Lokinet's Ed25519 identity usage, and Ed25519 signing/verification now exists behind project-owned contracts
 - the first project-owned signed payload boundary now exists without committing to any Lokinet wire format yet
+- the first project-owned signed payload codec now exists without committing to any Lokinet wire format yet
 
 ## Next Recommended Tasks
 
 - add backend-isolation tests around signing and verification so future provider swaps stay safe
-- build a protocol codec boundary on top of `SignedEnvelope` instead of pushing raw signature handling into callers
+- build higher-level identity-proof and protocol message types on top of `SignedEnvelopeCodec`
 - decide whether future multi-algorithm support should keep `Signature` as a variable-length container or introduce per-algorithm wrappers
 
 ## Files and Crates Involved

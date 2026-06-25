@@ -1,6 +1,6 @@
 use saferunnet_crypto::{
     Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator, PublicKey, SecretKey, Signature,
-    SignedEnvelope,
+    SignedEnvelope, SignedEnvelopeCodec,
 };
 
 #[test]
@@ -203,5 +203,117 @@ fn signed_envelope_rejects_valid_message_when_expected_signer_differs() {
     assert_eq!(
         error,
         saferunnet_crypto::SignatureError::ExpectedSignerMismatch
+    );
+}
+
+#[test]
+fn signed_envelope_codec_round_trips_signed_envelope() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope = SignedEnvelope::signed(&pair.secret_key, b"codec payload".to_vec()).unwrap();
+
+    let encoded = SignedEnvelopeCodec::encode(&envelope).unwrap();
+    let decoded = SignedEnvelopeCodec::decode(&encoded).unwrap();
+
+    assert_eq!(decoded, envelope);
+}
+
+#[test]
+fn decoded_envelope_still_verifies_for_expected_signer() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope =
+        SignedEnvelope::signed(&pair.secret_key, b"signer-bound payload".to_vec()).unwrap();
+
+    let encoded = SignedEnvelopeCodec::encode(&envelope).unwrap();
+    let decoded = SignedEnvelopeCodec::decode(&encoded).unwrap();
+
+    assert!(decoded.verify_signed_by(&pair.public_key).is_ok());
+}
+
+#[test]
+fn signed_envelope_codec_rejects_truncated_input() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope = SignedEnvelope::signed(&pair.secret_key, b"truncate me".to_vec()).unwrap();
+    let mut encoded = SignedEnvelopeCodec::encode(&envelope).unwrap();
+    encoded.pop();
+
+    let error = SignedEnvelopeCodec::decode(&encoded).unwrap_err();
+
+    assert_eq!(error.to_string(), "truncated signed envelope bytes");
+}
+
+#[test]
+fn signed_envelope_codec_rejects_unsupported_version() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope = SignedEnvelope::signed(&pair.secret_key, b"versioned payload".to_vec()).unwrap();
+    let mut encoded = SignedEnvelopeCodec::encode(&envelope).unwrap();
+    encoded[0] = 0x7f;
+
+    let error = SignedEnvelopeCodec::decode(&encoded).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "unsupported signed envelope codec version `127`"
+    );
+}
+
+#[test]
+fn signed_envelope_codec_tampered_payload_fails_verification_after_decode() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope = SignedEnvelope::signed(&pair.secret_key, b"tamper target".to_vec()).unwrap();
+    let mut encoded = SignedEnvelopeCodec::encode(&envelope).unwrap();
+    let last_index = encoded.len() - 1;
+    encoded[last_index] ^= 0x01;
+
+    let decoded = SignedEnvelopeCodec::decode(&encoded).unwrap();
+    let error = decoded.verify().unwrap_err();
+
+    assert_eq!(error, saferunnet_crypto::SignatureError::VerificationFailed);
+}
+
+#[test]
+fn signed_envelope_codec_encode_rejects_overlong_signature_without_panicking() {
+    let signer = PublicKey::from_bytes(KeyAlgorithm::Ed25519, [0x22; 32]);
+    let overlong_signature =
+        Signature::from_bytes(KeyAlgorithm::Ed25519, vec![0x55; (u16::MAX as usize) + 1]);
+    let envelope = SignedEnvelope::from_parts(b"payload".to_vec(), signer, overlong_signature);
+
+    let error = SignedEnvelopeCodec::encode(&envelope).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "length overflow for `signature` in signed envelope codec: `65536` exceeds `65535`"
+    );
+}
+
+#[test]
+fn signed_envelope_codec_decode_rejects_invalid_ed25519_signature_length() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope =
+        SignedEnvelope::signed(&pair.secret_key, b"decode length check".to_vec()).unwrap();
+
+    let signer = envelope.signer().to_bytes();
+    let short_signature = &envelope.signature().as_bytes()[..63];
+    let payload = envelope.payload();
+
+    let mut encoded = Vec::new();
+    encoded.push(1u8);
+    encoded.push(1u8);
+    encoded.push(1u8);
+    encoded.extend_from_slice(&(32u16).to_be_bytes());
+    encoded.extend_from_slice(&(63u16).to_be_bytes());
+    encoded.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+    encoded.extend_from_slice(&signer);
+    encoded.extend_from_slice(short_signature);
+    encoded.extend_from_slice(payload);
+
+    let error = SignedEnvelopeCodec::decode(&encoded).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "invalid signature length `63` for algorithm `ed25519` in signed envelope codec"
     );
 }
