@@ -4,9 +4,10 @@
 
 ## Current Status
 
-- Phase: Foundation bootstrap
+- Phase: Phase 0 complete, early Phase 1 and Phase 2 groundwork in progress
 - Spec: `docs/superpowers/specs/2026-06-25-saferunnet-rewrite-design.md`
 - Plan: `docs/superpowers/plans/2026-06-25-saferunnet-phase0-phase1-foundation.md`
+- Runtime: app kernel, service registry, config normalization, identity bootstrap, and concrete Ed25519 key generation are available as tested foundations
 
 ## Bootstrap Commands
 

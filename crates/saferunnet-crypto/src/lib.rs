@@ -1,4 +1,5 @@
 use thiserror::Error;
+use zeroize::Zeroize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyAlgorithm {
@@ -34,6 +35,37 @@ pub trait KeyGenerator: Send + Sync {
     fn generate(&self, algorithm: KeyAlgorithm) -> Result<KeyPair, KeyGenerationError>;
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Ed25519KeyGenerator;
+
+impl Ed25519KeyGenerator {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl KeyGenerator for Ed25519KeyGenerator {
+    fn generate(&self, algorithm: KeyAlgorithm) -> Result<KeyPair, KeyGenerationError> {
+        match algorithm {
+            KeyAlgorithm::Ed25519 => {
+                let mut csprng = rand_core::OsRng;
+                let signing_key = ed25519_dalek::SigningKey::generate(&mut csprng);
+
+                Ok(KeyPair {
+                    secret_key: SecretKey::from_bytes(
+                        KeyAlgorithm::Ed25519,
+                        signing_key.to_bytes(),
+                    ),
+                    public_key: PublicKey::from_bytes(
+                        KeyAlgorithm::Ed25519,
+                        signing_key.verifying_key().to_bytes(),
+                    ),
+                })
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PublicKey {
     algorithm: KeyAlgorithm,
@@ -41,6 +73,10 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
+    pub fn from_bytes(algorithm: KeyAlgorithm, bytes: [u8; 32]) -> Self {
+        Self { algorithm, bytes }
+    }
+
     pub fn from_hex(algorithm: KeyAlgorithm, value: &str) -> Result<Self, KeyMaterialError> {
         Ok(Self {
             algorithm,
@@ -52,18 +88,30 @@ impl PublicKey {
         self.algorithm
     }
 
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.bytes
+    }
+
+    pub fn write_hex(&self, output: &mut String) {
+        encode_hex_into(&self.bytes, output);
+    }
+
     pub fn to_hex(&self) -> String {
         encode_hex(&self.bytes)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SecretKey {
     algorithm: KeyAlgorithm,
     bytes: [u8; 32],
 }
 
 impl SecretKey {
+    pub fn from_bytes(algorithm: KeyAlgorithm, bytes: [u8; 32]) -> Self {
+        Self { algorithm, bytes }
+    }
+
     pub fn from_hex(algorithm: KeyAlgorithm, value: &str) -> Result<Self, KeyMaterialError> {
         Ok(Self {
             algorithm,
@@ -75,8 +123,32 @@ impl SecretKey {
         self.algorithm
     }
 
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.bytes
+    }
+
+    pub fn write_hex(&self, output: &mut String) {
+        encode_hex_into(&self.bytes, output);
+    }
+
     pub fn to_hex(&self) -> String {
         encode_hex(&self.bytes)
+    }
+}
+
+impl std::fmt::Debug for SecretKey {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SecretKey")
+            .field("algorithm", &self.algorithm)
+            .field("bytes", &"<redacted>")
+            .finish()
+    }
+}
+
+impl Drop for SecretKey {
+    fn drop(&mut self) {
+        self.bytes.zeroize();
     }
 }
 
@@ -114,9 +186,13 @@ fn decode_hex_32(input: &str) -> Result<[u8; 32], KeyMaterialError> {
 
 fn encode_hex(input: &[u8; 32]) -> String {
     let mut out = String::with_capacity(64);
+    encode_hex_into(input, &mut out);
+    out
+}
+
+fn encode_hex_into(input: &[u8; 32], output: &mut String) {
     for byte in input {
         use std::fmt::Write as _;
-        let _ = write!(&mut out, "{byte:02x}");
+        let _ = write!(output, "{byte:02x}");
     }
-    out
 }

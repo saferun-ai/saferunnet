@@ -1,6 +1,6 @@
 # Current Phase
 
-- Active phase: Phase 0 complete, early Phase 1 in progress
+- Active phase: Phase 0 complete, Phase 1 in progress, Phase 2 groundwork underway
 - Binary target: `saferunnet`
-- Current objective: finish shared runtime contracts, publish identity into the runtime, and prepare a concrete crypto backend selection for later link/path/router work
+- Current objective: finish shared runtime contracts, move identity from runtime publication into config-driven startup, and build signing-ready crypto services on top of the concrete Ed25519 backend
 - Exit gate: `cargo fmt`, `cargo clippy`, and `cargo test` all pass
