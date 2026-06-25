@@ -35,6 +35,21 @@ fn encode_top_frame(
     framed
 }
 
+fn tamper_signed_service_payload(
+    message: &AuthenticatedServiceMessage,
+    mutate: impl FnOnce(&mut Vec<u8>),
+) -> Vec<u8> {
+    let proof = message.proof().clone();
+    let mut tampered_payload = message.envelope().payload().to_vec();
+    mutate(&mut tampered_payload);
+    let tampered_envelope = SignedEnvelope::from_parts(
+        tampered_payload,
+        message.envelope().signer().clone(),
+        message.envelope().signature().clone(),
+    );
+    encode_top_frame(&proof, &tampered_envelope)
+}
+
 #[test]
 fn sign_and_verify_round_trip() {
     let identity = make_identity("alice");
@@ -84,6 +99,24 @@ fn router_announcement_service_kind_round_trip_preserves_kind() {
 
     assert_eq!(decoded.kind(), ServiceMessageKind::RouterAnnouncement);
     assert_eq!(decoded.body(), b"router-ready");
+    decoded.verify().expect("decoded message should verify");
+}
+
+#[test]
+fn link_path_control_service_kind_round_trip_preserves_kind() {
+    let identity = make_identity("alice");
+    let message = AuthenticatedServiceMessage::sign(
+        &identity,
+        ServiceMessageKind::LinkPathControl,
+        b"link-ready".to_vec(),
+    )
+    .expect("sign should succeed");
+
+    let encoded = message.encode().expect("encode should succeed");
+    let decoded = AuthenticatedServiceMessage::decode(&encoded).expect("decode should succeed");
+
+    assert_eq!(decoded.kind(), ServiceMessageKind::LinkPathControl);
+    assert_eq!(decoded.body(), b"link-ready");
     decoded.verify().expect("decoded message should verify");
 }
 
@@ -142,6 +175,64 @@ fn tampered_signed_payload_is_rejected_by_decode() {
         .expect_err("decode should reject payload tampering");
     assert!(matches!(
         error,
+        ServiceMessageError::Signature(SignatureError::VerificationFailed)
+    ));
+}
+
+#[test]
+fn decode_verified_rejects_tampered_payload_before_unsupported_payload_version_error() {
+    let identity = make_identity("alice");
+    let message = AuthenticatedServiceMessage::sign(
+        &identity,
+        ServiceMessageKind::Announcement,
+        b"versioned".to_vec(),
+    )
+    .expect("sign should succeed");
+
+    let encoded = tamper_signed_service_payload(&message, |payload| {
+        payload[0] = 0x7f;
+    });
+
+    let unverified_error = AuthenticatedServiceMessage::decode_unverified(&encoded)
+        .expect_err("unverified decode should surface the payload parse error");
+    assert!(matches!(
+        unverified_error,
+        ServiceMessageError::FrameMalformed("unsupported service payload version")
+    ));
+
+    let verified_error = AuthenticatedServiceMessage::decode_verified(&encoded)
+        .expect_err("verified decode should fail signature verification first");
+    assert!(matches!(
+        verified_error,
+        ServiceMessageError::Signature(SignatureError::VerificationFailed)
+    ));
+}
+
+#[test]
+fn decode_verified_rejects_tampered_payload_before_truncated_payload_error() {
+    let identity = make_identity("alice");
+    let message = AuthenticatedServiceMessage::sign(
+        &identity,
+        ServiceMessageKind::Announcement,
+        b"truncated".to_vec(),
+    )
+    .expect("sign should succeed");
+
+    let encoded = tamper_signed_service_payload(&message, |payload| {
+        payload.truncate(payload.len() - 1);
+    });
+
+    let unverified_error = AuthenticatedServiceMessage::decode_unverified(&encoded)
+        .expect_err("unverified decode should surface the payload truncation");
+    assert!(matches!(
+        unverified_error,
+        ServiceMessageError::FrameTruncated
+    ));
+
+    let verified_error = AuthenticatedServiceMessage::decode_verified(&encoded)
+        .expect_err("verified decode should fail signature verification first");
+    assert!(matches!(
+        verified_error,
         ServiceMessageError::Signature(SignatureError::VerificationFailed)
     ));
 }

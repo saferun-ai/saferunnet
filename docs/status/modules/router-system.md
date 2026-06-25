@@ -29,7 +29,6 @@ Define the first typed router-facing protocol family on top of `saferunnet-servi
 ## Not Yet Implemented
 
 - router handshake or control families beyond announcements
-- link protocol message types
 - transport/runtime integration
 - compatibility mapping to upstream Lokinet router messages
 
@@ -55,7 +54,7 @@ Define the first typed router-facing protocol family on top of `saferunnet-servi
 ## Next Recommended Tasks
 
 - add the next typed router family that shares this authenticated boundary
-- define the first link-facing typed message layer above or beside router announcements as architecture requires
+- decide whether later router families should interact directly with `saferunnet-link` path control or remain parallel consumers of `saferunnet-service`
 - connect router announcements to a higher runtime component once a consumer exists
 
 ## Files and Crates Involved

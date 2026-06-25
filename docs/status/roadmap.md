@@ -11,4 +11,4 @@
 
 ## Current Focus
 
-Expand the configuration system and app kernel without collapsing module boundaries, while turning the crypto, identity, authenticated service-message, and typed router foundations into reusable runtime behavior for later link and network work.
+Expand the configuration system and app kernel without collapsing module boundaries, while turning the crypto, identity, authenticated service-message, typed router, and typed link-control foundations into reusable runtime behavior for later link and network work.

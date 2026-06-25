@@ -11,6 +11,7 @@ const SERVICE_PAYLOAD_HEADER_LEN: usize = 6;
 pub enum ServiceMessageKind {
     Announcement,
     RouterAnnouncement,
+    LinkPathControl,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,35 +71,7 @@ impl AuthenticatedServiceMessage {
     }
 
     pub fn decode_unverified(input: &[u8]) -> Result<Self, ServiceMessageError> {
-        if input.len() < SERVICE_FRAME_HEADER_LEN {
-            return Err(ServiceMessageError::FrameTruncated);
-        }
-
-        let mut cursor = input;
-        let version = take_frame_exact(&mut cursor, 1)?[0];
-        if version != SERVICE_FRAME_VERSION {
-            return Err(ServiceMessageError::UnsupportedVersion(version));
-        }
-
-        let proof_len = u32::from_be_bytes(
-            take_frame_exact(&mut cursor, 4)?
-                .try_into()
-                .expect("take_frame_exact guarantees exact byte count"),
-        ) as usize;
-        let envelope_len = u32::from_be_bytes(
-            take_frame_exact(&mut cursor, 4)?
-                .try_into()
-                .expect("take_frame_exact guarantees exact byte count"),
-        ) as usize;
-        let proof = IdentityProof::decode(take_frame_exact(&mut cursor, proof_len)?)?;
-        let envelope = SignedEnvelopeCodec::decode(take_frame_exact(&mut cursor, envelope_len)?)?;
-
-        if !cursor.is_empty() {
-            return Err(ServiceMessageError::FrameMalformed(
-                "unexpected trailing bytes in service message frame",
-            ));
-        }
-
+        let (proof, envelope) = decode_service_frame(input)?;
         let (kind, body) = decode_service_payload(envelope.payload())?;
         Ok(Self {
             proof,
@@ -109,9 +82,15 @@ impl AuthenticatedServiceMessage {
     }
 
     pub fn decode_verified(input: &[u8]) -> Result<Self, ServiceMessageError> {
-        let message = Self::decode_unverified(input)?;
-        message.verify()?;
-        Ok(message)
+        let (proof, envelope) = decode_service_frame(input)?;
+        verify_service_envelope(&proof, &envelope)?;
+        let (kind, body) = decode_service_payload(envelope.payload())?;
+        Ok(Self {
+            proof,
+            kind,
+            body,
+            envelope,
+        })
     }
 
     pub fn proof(&self) -> &IdentityProof {
@@ -131,14 +110,7 @@ impl AuthenticatedServiceMessage {
     }
 
     pub fn verify(&self) -> Result<(), ServiceMessageError> {
-        self.proof.verify()?;
-        self.envelope
-            .verify_signed_by(&self.proof.claim().public_key)
-            .map_err(|error| match error {
-                SignatureError::ExpectedSignerMismatch => ServiceMessageError::SignerMismatch,
-                other => ServiceMessageError::Signature(other),
-            })?;
-
+        verify_service_envelope(&self.proof, &self.envelope)?;
         let (signed_kind, signed_body) = decode_service_payload(self.envelope.payload())?;
         if signed_kind != self.kind || signed_body != self.body {
             return Err(ServiceMessageError::PayloadMismatch);
@@ -200,6 +172,41 @@ fn encode_service_payload(
     Ok(payload)
 }
 
+fn decode_service_frame(
+    input: &[u8],
+) -> Result<(IdentityProof, SignedEnvelope), ServiceMessageError> {
+    if input.len() < SERVICE_FRAME_HEADER_LEN {
+        return Err(ServiceMessageError::FrameTruncated);
+    }
+
+    let mut cursor = input;
+    let version = take_frame_exact(&mut cursor, 1)?[0];
+    if version != SERVICE_FRAME_VERSION {
+        return Err(ServiceMessageError::UnsupportedVersion(version));
+    }
+
+    let proof_len = u32::from_be_bytes(
+        take_frame_exact(&mut cursor, 4)?
+            .try_into()
+            .expect("take_frame_exact guarantees exact byte count"),
+    ) as usize;
+    let envelope_len = u32::from_be_bytes(
+        take_frame_exact(&mut cursor, 4)?
+            .try_into()
+            .expect("take_frame_exact guarantees exact byte count"),
+    ) as usize;
+    let proof = IdentityProof::decode(take_frame_exact(&mut cursor, proof_len)?)?;
+    let envelope = SignedEnvelopeCodec::decode(take_frame_exact(&mut cursor, envelope_len)?)?;
+
+    if !cursor.is_empty() {
+        return Err(ServiceMessageError::FrameMalformed(
+            "unexpected trailing bytes in service message frame",
+        ));
+    }
+
+    Ok((proof, envelope))
+}
+
 fn decode_service_payload(
     input: &[u8],
 ) -> Result<(ServiceMessageKind, Vec<u8>), ServiceMessageError> {
@@ -228,10 +235,25 @@ fn decode_service_payload(
     Ok((kind, body))
 }
 
+fn verify_service_envelope(
+    proof: &IdentityProof,
+    envelope: &SignedEnvelope,
+) -> Result<(), ServiceMessageError> {
+    proof.verify()?;
+    envelope
+        .verify_signed_by(&proof.claim().public_key)
+        .map_err(|error| match error {
+            SignatureError::ExpectedSignerMismatch => ServiceMessageError::SignerMismatch,
+            other => ServiceMessageError::Signature(other),
+        })?;
+    Ok(())
+}
+
 fn encode_kind(kind: ServiceMessageKind) -> u8 {
     match kind {
         ServiceMessageKind::Announcement => 1,
         ServiceMessageKind::RouterAnnouncement => 2,
+        ServiceMessageKind::LinkPathControl => 3,
     }
 }
 
@@ -239,6 +261,7 @@ fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
     match encoded {
         1 => Ok(ServiceMessageKind::Announcement),
         2 => Ok(ServiceMessageKind::RouterAnnouncement),
+        3 => Ok(ServiceMessageKind::LinkPathControl),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),
