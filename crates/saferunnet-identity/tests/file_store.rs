@@ -1,8 +1,10 @@
 use saferunnet_crypto::{
     Ed25519KeyGenerator, KeyAlgorithm, KeyGenerationError, KeyGenerator, KeyPair, PublicKey,
-    SecretKey,
+    SecretKey, SignedEnvelope, SignedEnvelopeCodec,
 };
-use saferunnet_identity::{FileIdentityRepository, IdentitySpec, NodeIdentity};
+use saferunnet_identity::{
+    FileIdentityRepository, IdentityProof, IdentityProofError, IdentitySpec, NodeIdentity,
+};
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -18,6 +20,18 @@ fn temp_path() -> std::path::PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("saferunnet-identity-{unique}.txt"))
+}
+
+fn generated_identity(nickname: &str) -> NodeIdentity {
+    let key_pair = Ed25519KeyGenerator::new()
+        .generate(KeyAlgorithm::Ed25519)
+        .unwrap();
+    NodeIdentity {
+        nickname: nickname.to_string(),
+        algorithm: KeyAlgorithm::Ed25519,
+        secret_key: key_pair.secret_key,
+        public_key: key_pair.public_key,
+    }
 }
 
 #[test]
@@ -206,4 +220,118 @@ fn file_repository_writes_protected_acl_for_identity_files() {
     assert!(!acl.contains("Everyone:"), "acl was {acl:?}");
 
     let _ = fs::remove_file(path);
+}
+
+#[test]
+fn identity_proof_sign_and_verify_round_trip() {
+    let identity = generated_identity("proof-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+
+    proof.verify().unwrap();
+    assert_eq!(proof.claim().nickname, "proof-node");
+    assert_eq!(proof.claim().algorithm, KeyAlgorithm::Ed25519);
+    assert_eq!(proof.claim().public_key, identity.public_key);
+}
+
+#[test]
+fn identity_proof_sign_rejects_mismatched_identity_keypair() {
+    let mut identity = generated_identity("mismatched-keypair-node");
+    let other_identity = generated_identity("other-node");
+    identity.public_key = other_identity.public_key;
+
+    let error = IdentityProof::sign(&identity).unwrap_err();
+
+    assert!(matches!(error, IdentityProofError::KeyPairMismatch));
+}
+
+#[test]
+fn identity_proof_encode_decode_round_trip_preserves_claim_and_verifies() {
+    let identity = generated_identity("codec-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+    let encoded = proof.encode().unwrap();
+
+    let decoded = IdentityProof::decode(&encoded).unwrap();
+
+    assert_eq!(decoded.claim(), proof.claim());
+    decoded.verify().unwrap();
+}
+
+#[test]
+fn identity_proof_decode_verified_round_trip_preserves_claim() {
+    let identity = generated_identity("decode-verified-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+    let encoded = proof.encode().unwrap();
+
+    let decoded = IdentityProof::decode_verified(&encoded).unwrap();
+
+    assert_eq!(decoded.claim(), proof.claim());
+}
+
+#[test]
+fn identity_proof_tampered_payload_fails_verification_after_decode() {
+    let identity = generated_identity("tamper-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+    let encoded = proof.encode().unwrap();
+    let envelope = SignedEnvelopeCodec::decode(&encoded).unwrap();
+    let mut tampered_payload = envelope.payload().to_vec();
+    tampered_payload[3] ^= 0x01;
+    let tampered_envelope = SignedEnvelope::from_parts(
+        tampered_payload,
+        envelope.signer().clone(),
+        envelope.signature().clone(),
+    );
+    let tampered_bytes = SignedEnvelopeCodec::encode(&tampered_envelope).unwrap();
+
+    let decoded = IdentityProof::decode(&tampered_bytes).unwrap();
+
+    assert!(matches!(
+        decoded.verify(),
+        Err(IdentityProofError::Signature(_))
+    ));
+}
+
+#[test]
+fn identity_proof_decode_rejects_malformed_claim_payload() {
+    let identity = generated_identity("malformed-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+    let encoded = proof.encode().unwrap();
+    let envelope = SignedEnvelopeCodec::decode(&encoded).unwrap();
+    let mut malformed_payload = envelope.payload().to_vec();
+    malformed_payload[0] = 42;
+    let malformed_envelope = SignedEnvelope::from_parts(
+        malformed_payload,
+        envelope.signer().clone(),
+        envelope.signature().clone(),
+    );
+    let malformed_bytes = SignedEnvelopeCodec::encode(&malformed_envelope).unwrap();
+
+    let error = IdentityProof::decode(&malformed_bytes).unwrap_err();
+
+    assert!(matches!(
+        error,
+        IdentityProofError::ClaimPayloadMalformed(_)
+    ));
+}
+
+#[test]
+fn identity_proof_verify_rejects_mismatched_claimed_public_key() {
+    let identity = generated_identity("mismatch-node");
+    let proof = IdentityProof::sign(&identity).unwrap();
+    let encoded = proof.encode().unwrap();
+    let envelope = SignedEnvelopeCodec::decode(&encoded).unwrap();
+    let mut tampered_payload = envelope.payload().to_vec();
+    let public_key_offset = 4 + identity.nickname.len() + 1;
+    tampered_payload[public_key_offset] ^= 0x01;
+    let tampered_envelope = SignedEnvelope::from_parts(
+        tampered_payload,
+        envelope.signer().clone(),
+        envelope.signature().clone(),
+    );
+    let tampered_bytes = SignedEnvelopeCodec::encode(&tampered_envelope).unwrap();
+    let decoded = IdentityProof::decode(&tampered_bytes).unwrap();
+
+    assert!(matches!(
+        decoded.verify(),
+        Err(IdentityProofError::ClaimedSignerMismatch)
+    ));
 }
