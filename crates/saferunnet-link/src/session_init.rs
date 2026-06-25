@@ -3,32 +3,11 @@ use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
 
+use crate::session_types::SessionHopId;
+
 const SESSION_INIT_PAYLOAD_VERSION: u8 = 1;
 const SESSION_HOP_ID_LEN: usize = 16;
 const SESSION_INIT_BASE_LEN: usize = 1 + 1 + 32 + SESSION_HOP_ID_LEN + SESSION_HOP_ID_LEN + 1;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SessionHopId([u8; SESSION_HOP_ID_LEN]);
-
-impl SessionHopId {
-    pub fn new(bytes: [u8; SESSION_HOP_ID_LEN]) -> Self {
-        Self(bytes)
-    }
-
-    pub fn as_bytes(&self) -> &[u8; SESSION_HOP_ID_LEN] {
-        &self.0
-    }
-
-    pub fn to_bytes(self) -> [u8; SESSION_HOP_ID_LEN] {
-        self.0
-    }
-}
-
-impl From<[u8; SESSION_HOP_ID_LEN]> for SessionHopId {
-    fn from(bytes: [u8; SESSION_HOP_ID_LEN]) -> Self {
-        Self::new(bytes)
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionInitMessage {

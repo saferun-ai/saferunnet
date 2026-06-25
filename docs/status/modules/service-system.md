@@ -22,23 +22,24 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `ServiceMessageKind::RouterAnnouncement` alongside the existing `Announcement` kind
 - dedicated `ServiceMessageKind::LinkPathControl` for typed link-facing control payloads
 - dedicated `ServiceMessageKind::LinkSessionInit` for the first typed link session-init payload family
+- dedicated `ServiceMessageKind::LinkSessionPathSwitch` for the first typed link session path-switch payload family
 - downstream typed consumers now exist in `saferunnet-router` and `saferunnet-link`
 
 ## Partially Implemented Items
 
 - the service body is still opaque bytes at this layer even when downstream crates impose richer typed payload contracts
-- only four message kinds exist so far: `Announcement`, `RouterAnnouncement`, `LinkPathControl`, and `LinkSessionInit`
+- only five message kinds exist so far: `Announcement`, `RouterAnnouncement`, `LinkPathControl`, `LinkSessionInit`, and `LinkSessionPathSwitch`
 
 ## Not Yet Implemented
 
-- broader link negotiation or session messages beyond the first typed path-control and session-init families
+- broader link negotiation or session messages beyond the first typed path-control, session-init, and session-path-switch families
 - service-session lifecycle messages
 - compatibility mapping to any upstream Lokinet message formats
 
 ## Known Risks
 
 - current service-message payload body is still opaque bytes and not yet decomposed into richer domain-specific message types
-- only the router announcement family plus the first link path-control and session-init families currently consume the service boundary
+- only the router announcement family plus the first link path-control, session-init, and session-path-switch families currently consume the service boundary
 - no app/runtime pipeline uses `saferunnet-service` over a real transport yet
 
 ## Test Coverage State
@@ -53,6 +54,7 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `RouterAnnouncement` service-kind round-trip coverage is present
 - dedicated `LinkPathControl` service-kind round-trip coverage is present
 - dedicated `LinkSessionInit` service-kind round-trip coverage is present
+- dedicated `LinkSessionPathSwitch` service-kind round-trip coverage is present
 
 ## Compatibility Notes
 
