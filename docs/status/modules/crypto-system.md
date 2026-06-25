@@ -25,6 +25,8 @@ Define project-owned cryptographic key material contracts without forcing the re
 - redacted `SecretKey` debug output and zeroization on drop
 - project-owned Ed25519 signing and verification contracts
 - project-owned signature container with algorithm tagging and verification diagnostics
+- project-owned signed-envelope boundary for protocol-facing payloads
+- explicit expected-signer verification for peer-bound envelope checks
 
 ## Partially Implemented Items
 
@@ -55,15 +57,20 @@ Define project-owned cryptographic key material contracts without forcing the re
 - signature round-trip behavior is covered
 - wrong-message and wrong-key verification failures are covered
 - invalid signature material rejection is covered
+- signed-envelope round-trip behavior is covered
+- signed-envelope tamper detection is covered
+- signed-envelope binary payload preservation is covered
+- signed-envelope expected-signer rejection is covered
 
 ## Compatibility Notes
 
 - naming aligns with Lokinet's Ed25519 identity usage, and Ed25519 signing/verification now exists behind project-owned contracts
+- the first project-owned signed payload boundary now exists without committing to any Lokinet wire format yet
 
 ## Next Recommended Tasks
 
 - add backend-isolation tests around signing and verification so future provider swaps stay safe
-- add blinded or transport-key abstractions only when callers exist
+- build a protocol codec boundary on top of `SignedEnvelope` instead of pushing raw signature handling into callers
 - decide whether future multi-algorithm support should keep `Signature` as a variable-length container or introduce per-algorithm wrappers
 
 ## Files and Crates Involved

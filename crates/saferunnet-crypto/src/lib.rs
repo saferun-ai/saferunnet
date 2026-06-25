@@ -226,6 +226,61 @@ impl Signature {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedEnvelope {
+    payload: Vec<u8>,
+    signer: PublicKey,
+    signature: Signature,
+}
+
+impl SignedEnvelope {
+    pub fn signed(
+        secret_key: &SecretKey,
+        payload: impl Into<Vec<u8>>,
+    ) -> Result<Self, SignatureError> {
+        let payload = payload.into();
+        let signer = secret_key.public_key();
+        let signature = secret_key.sign(&payload)?;
+        Ok(Self {
+            payload,
+            signer,
+            signature,
+        })
+    }
+
+    pub fn from_parts(payload: Vec<u8>, signer: PublicKey, signature: Signature) -> Self {
+        Self {
+            payload,
+            signer,
+            signature,
+        }
+    }
+
+    pub fn payload(&self) -> &[u8] {
+        &self.payload
+    }
+
+    pub fn signer(&self) -> &PublicKey {
+        &self.signer
+    }
+
+    pub fn signature(&self) -> &Signature {
+        &self.signature
+    }
+
+    pub fn verify(&self) -> Result<(), SignatureError> {
+        self.signer.verify(&self.payload, &self.signature)
+    }
+
+    pub fn verify_signed_by(&self, expected_signer: &PublicKey) -> Result<(), SignatureError> {
+        if &self.signer != expected_signer {
+            return Err(SignatureError::ExpectedSignerMismatch);
+        }
+
+        self.verify()
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum KeyMaterialError {
     #[error("unsupported key algorithm `{0}`")]
@@ -255,6 +310,8 @@ pub enum SignatureError {
     InvalidKeyMaterial,
     #[error("signature verification failed")]
     VerificationFailed,
+    #[error("embedded signer does not match expected signer")]
+    ExpectedSignerMismatch,
 }
 
 fn decode_hex_32(input: &str) -> Result<[u8; 32], KeyMaterialError> {

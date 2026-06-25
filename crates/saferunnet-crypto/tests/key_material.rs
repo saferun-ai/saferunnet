@@ -1,5 +1,6 @@
 use saferunnet_crypto::{
     Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator, PublicKey, SecretKey, Signature,
+    SignedEnvelope,
 };
 
 #[test]
@@ -127,5 +128,80 @@ fn verification_rejects_invalid_signature_material() {
     assert_eq!(
         error,
         saferunnet_crypto::SignatureError::InvalidSignatureMaterial
+    );
+}
+
+#[test]
+fn signed_envelope_sign_and_verify_round_trip() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let payload = b"protocol boundary payload".to_vec();
+
+    let envelope = SignedEnvelope::signed(&pair.secret_key, payload.clone()).unwrap();
+
+    assert_eq!(envelope.payload(), payload.as_slice());
+    assert_eq!(envelope.signer(), &pair.public_key);
+    assert_eq!(envelope.signature().algorithm(), KeyAlgorithm::Ed25519);
+    assert!(envelope.verify().is_ok());
+}
+
+#[test]
+fn signed_envelope_verification_fails_when_payload_tampered() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope = SignedEnvelope::signed(&pair.secret_key, b"original".to_vec()).unwrap();
+
+    let tampered = SignedEnvelope::from_parts(
+        b"tampered".to_vec(),
+        envelope.signer().clone(),
+        envelope.signature().clone(),
+    );
+
+    let error = tampered.verify().unwrap_err();
+
+    assert_eq!(error, saferunnet_crypto::SignatureError::VerificationFailed);
+}
+
+#[test]
+fn signed_envelope_verification_fails_for_wrong_signer_signature_pairing() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair_a = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let pair_b = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let payload = b"shared payload".to_vec();
+    let envelope_a = SignedEnvelope::signed(&pair_a.secret_key, payload.clone()).unwrap();
+
+    let mismatched =
+        SignedEnvelope::from_parts(payload, pair_b.public_key, envelope_a.signature().clone());
+
+    let error = mismatched.verify().unwrap_err();
+
+    assert_eq!(error, saferunnet_crypto::SignatureError::VerificationFailed);
+}
+
+#[test]
+fn signed_envelope_preserves_binary_payload_exactly() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let payload = vec![0x00, 0xff, 0x7f, 0x80, 0x0a, 0x00, 0xfe, 0x55];
+
+    let envelope = SignedEnvelope::signed(&pair.secret_key, payload.clone()).unwrap();
+
+    assert_eq!(envelope.payload(), payload.as_slice());
+    assert!(envelope.verify().is_ok());
+}
+
+#[test]
+fn signed_envelope_rejects_valid_message_when_expected_signer_differs() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair_a = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let pair_b = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let envelope =
+        SignedEnvelope::signed(&pair_b.secret_key, b"peer-bound payload".to_vec()).unwrap();
+
+    let error = envelope.verify_signed_by(&pair_a.public_key).unwrap_err();
+
+    assert_eq!(
+        error,
+        saferunnet_crypto::SignatureError::ExpectedSignerMismatch
     );
 }
