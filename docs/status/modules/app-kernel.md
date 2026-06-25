@@ -20,16 +20,17 @@ Own startup, shutdown, state transitions, and module orchestration.
 - typed service registry
 - module wiring before startup
 - startup failure rollback for previously started modules
+- explicit declared service dependency checks before wiring
 
 ## Partially Implemented Items
 
-- service registration exists, but dependency policies between modules are still shallow
+- service registration exists, and basic dependency declaration is enforced, but contracts are still string-key based
 
 ## Not Yet Implemented
 
 - richer module error categories
-- declarative service dependency contracts
 - rollback handling for partial wire/setup failures
+- richer typed dependency descriptors beyond string keys
 
 ## Known Risks
 
@@ -41,6 +42,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - duplicate start protection is covered
 - service wiring before startup is covered
 - startup rollback on module failure is covered
+- missing declared service dependencies are rejected before wiring
 
 ## Compatibility Notes
 
@@ -49,7 +51,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 ## Next Recommended Tasks
 
 - add structured shutdown rollback
-- expand service dependency contracts beyond type lookup
+- replace string-key dependency contracts with richer typed descriptors
 - add richer module error categories
 
 ## Files and Crates Involved

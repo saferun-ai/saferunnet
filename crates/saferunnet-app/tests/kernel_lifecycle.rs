@@ -98,7 +98,9 @@ fn kernel_rejects_double_start() {
 #[test]
 fn kernel_wires_registered_services_before_start() {
     let mut kernel = AppKernel::new();
-    kernel.services_mut().insert(SharedNickname("edge-service"));
+    kernel
+        .services_mut()
+        .insert_named("SharedNickname", SharedNickname("edge-service"));
     kernel.register(Box::new(WiringModule { captured: None }));
 
     kernel.start().unwrap();
@@ -153,5 +155,37 @@ fn kernel_rolls_back_started_modules_when_a_later_module_fails() {
         events.lock().unwrap().as_slice(),
         ["start:config", "start:router", "stop:config"]
     );
+    assert_eq!(kernel.state(), LifecycleState::Stopped);
+}
+
+struct ContractModule;
+
+impl RuntimeModule for ContractModule {
+    fn name(&self) -> &'static str {
+        "contract"
+    }
+
+    fn required_service_keys(&self) -> &'static [&'static str] {
+        &["SharedNickname"]
+    }
+
+    fn start(&mut self) -> Result<(), ModuleError> {
+        Ok(())
+    }
+
+    fn stop(&mut self) -> Result<(), ModuleError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn kernel_rejects_missing_declared_service_dependencies_before_wiring() {
+    let mut kernel = AppKernel::new();
+    kernel.register(Box::new(ContractModule));
+
+    let error = kernel.start().unwrap_err();
+
+    assert!(error.to_string().contains("contract"));
+    assert!(error.to_string().contains("SharedNickname"));
     assert_eq!(kernel.state(), LifecycleState::Stopped);
 }

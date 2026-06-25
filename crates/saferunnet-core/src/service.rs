@@ -4,6 +4,7 @@ use std::collections::HashMap;
 #[derive(Default)]
 pub struct ServiceRegistry {
     services: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    keys: HashMap<&'static str, TypeId>,
 }
 
 impl ServiceRegistry {
@@ -12,6 +13,23 @@ impl ServiceRegistry {
     }
 
     pub fn insert<T>(&mut self, service: T) -> Option<T>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.keys
+            .insert(std::any::type_name::<T>(), TypeId::of::<T>());
+        self.insert_inner(service)
+    }
+
+    pub fn insert_named<T>(&mut self, key: &'static str, service: T) -> Option<T>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.keys.insert(key, TypeId::of::<T>());
+        self.insert_inner(service)
+    }
+
+    fn insert_inner<T>(&mut self, service: T) -> Option<T>
     where
         T: Send + Sync + 'static,
     {
@@ -27,5 +45,9 @@ impl ServiceRegistry {
         self.services
             .get(&TypeId::of::<T>())
             .and_then(|service| service.downcast_ref::<T>())
+    }
+
+    pub fn contains_key(&self, key: &'static str) -> bool {
+        self.keys.contains_key(key)
     }
 }
