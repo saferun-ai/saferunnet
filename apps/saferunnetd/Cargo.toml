@@ -1,0 +1,16 @@
+[package]
+name = "saferunnetd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "saferunnet"
+path = "src/main.rs"
+
+[dependencies]
+saferunnet-app = { path = "../../crates/saferunnet-app" }
+saferunnet-config = { path = "../../crates/saferunnet-config" }
+saferunnet-observability = { path = "../../crates/saferunnet-observability" }

@@ -1,0 +1,23 @@
+[workspace]
+members = [
+  "apps/saferunnetd",
+  "crates/saferunnet-app",
+  "crates/saferunnet-core",
+  "crates/saferunnet-config",
+  "crates/saferunnet-compat-lokinet",
+  "crates/saferunnet-observability",
+  "crates/saferunnet-testing",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+authors = ["Saferunnet Team"]
+repository = "local"
+
+[workspace.dependencies]
+thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
