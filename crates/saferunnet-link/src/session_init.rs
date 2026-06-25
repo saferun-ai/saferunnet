@@ -47,12 +47,12 @@ impl AuthenticatedSessionInitMessage {
 
     pub fn decode_unverified(input: &[u8]) -> Result<Self, SessionInitError> {
         let service_message = AuthenticatedServiceMessage::decode_unverified(input)?;
-        Self::from_service_message(service_message)
+        Self::from_authenticated_service_message(service_message)
     }
 
     pub fn decode_verified(input: &[u8]) -> Result<Self, SessionInitError> {
         let service_message = AuthenticatedServiceMessage::decode_verified(input)?;
-        Self::from_service_message(service_message)
+        Self::from_authenticated_service_message(service_message)
     }
 
     pub fn message(&self) -> &SessionInitMessage {
@@ -79,7 +79,7 @@ impl AuthenticatedSessionInitMessage {
         Ok(())
     }
 
-    fn from_service_message(
+    pub(crate) fn from_authenticated_service_message(
         service_message: AuthenticatedServiceMessage,
     ) -> Result<Self, SessionInitError> {
         if service_message.kind() != ServiceMessageKind::LinkSessionInit {

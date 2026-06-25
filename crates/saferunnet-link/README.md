@@ -13,10 +13,13 @@
 - `AuthenticatedSessionInitMessage` on top of `AuthenticatedServiceMessage`
 - `SessionPathSwitchMessage` carrying local pivot, remote pivot, and session tag
 - `AuthenticatedSessionPathSwitchMessage` on top of `AuthenticatedServiceMessage`
+- `AuthenticatedLinkMessage` as the unified typed decode/dispatch boundary over current link families
+- `LinkMessageError` for lower-level service decode errors, unsupported service kinds, and family-specific typed decode failures
 - deterministic project-owned binary framing for link path-control payloads
 - deterministic project-owned binary framing for typed session-init payloads
 - deterministic project-owned binary framing for typed session-path-switch payloads
 - safe verified decode by default with explicit unverified and verified decode entry points
+- unified link-family dispatcher that decodes the lower-level authenticated service message once, branches on `ServiceMessageKind`, and then performs family-specific typed parsing
 - verification that enforces the dedicated lower-level `ServiceMessageKind::LinkPathControl`
 - verification that enforces the dedicated lower-level `ServiceMessageKind::LinkSessionInit`
 - verification that enforces the dedicated lower-level `ServiceMessageKind::LinkSessionPathSwitch`

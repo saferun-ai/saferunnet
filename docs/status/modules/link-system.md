@@ -18,6 +18,8 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - `SessionPathSwitchMessage`
 - `AuthenticatedSessionPathSwitchMessage`
 - `SessionPathSwitchError`
+- `AuthenticatedLinkMessage`
+- `LinkMessageError`
 
 ## Implemented Items
 
@@ -34,10 +36,13 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - `AuthenticatedSessionInitMessage` wrapper over `AuthenticatedServiceMessage`
 - `SessionPathSwitchMessage` typed payload carrying local pivot hop id, remote pivot hop id, and session tag
 - `AuthenticatedSessionPathSwitchMessage` wrapper over `AuthenticatedServiceMessage`
+- `AuthenticatedLinkMessage` unified typed decode/dispatch boundary over current authenticated link families
+- `LinkMessageError` typed error boundary for lower-level service decode/auth errors, unsupported service kinds, and family-specific typed decode failures
 - safe verified decode as the default, with explicit unverified and verified decode entry points
 - verified decode authenticates the lower-level service message before typed path-control parsing
 - verified decode authenticates the lower-level service message before typed session-init parsing
 - verified decode authenticates the lower-level service message before typed session-path-switch parsing
+- unified dispatcher decodes `AuthenticatedServiceMessage` once, branches by `ServiceMessageKind`, and then performs family-specific typed parsing
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkPathControl` service kind, and exact body equality
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionInit` service kind, and exact body equality
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionPathSwitch` service kind, and exact body equality
@@ -89,6 +94,10 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - session-path-switch tampered signed payload rejection is covered
 - session-path-switch unsupported, truncated, and trailing-bytes payload rejection is covered
 - session-path-switch verified decode authentication ordering against tampered typed payloads is covered
+- unified link-message decode/dispatch round-trip for path-control, session-init, and session-path-switch is covered
+- unified dispatcher rejection of non-link service kinds is covered
+- unified verified decode preference for lower-level auth failure over typed parse failure is covered
+- unified unverified decode surfacing of family-specific typed parse errors is covered
 
 ## Compatibility Notes
 
