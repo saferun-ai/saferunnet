@@ -280,6 +280,7 @@ dependencies = [
  "saferunnet-core",
  "saferunnet-crypto",
  "saferunnet-identity",
+ "saferunnet-link",
 ]
 
 [[package]]

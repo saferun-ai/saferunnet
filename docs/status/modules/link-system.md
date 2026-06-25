@@ -49,6 +49,8 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - typed path-control dispatch rejects unsupported variants, unsupported versions, truncated ping bodies, and trailing payload bytes
 - typed session-init dispatch rejects unsupported initiator algorithm ids, malformed auth-token framing, truncated auth-token payloads, and trailing payload bytes
 - typed session-path-switch dispatch rejects unsupported versions, truncated payloads, and trailing payload bytes
+- first app/runtime consumer seam for unified link decode via `saferunnet-app::LinkMessageDispatcher`
+- `saferunnet-app::LinkMessageModule` runtime publication path for the dispatcher through `ServiceRegistry`
 
 ## Partially Implemented Items
 
@@ -69,7 +71,7 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 
 - later path-control variants may need a payload structure richer than the current fixed-width ping body
 - later link families may want a shared framing helper instead of per-family framing code
-- no higher runtime layer consumes typed link control, session-init, or session-path-switch messages yet
+- the runtime seam is currently decode-only and stateless; higher-level session orchestration is still not implemented
 
 ## Test Coverage State
 
@@ -98,6 +100,9 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - unified dispatcher rejection of non-link service kinds is covered
 - unified verified decode preference for lower-level auth failure over typed parse failure is covered
 - unified unverified decode surfacing of family-specific typed parse errors is covered
+- runtime-kernel wiring for dispatcher publication and consumption is covered
+- runtime consumer decode coverage for path-control, session-init, and session-path-switch through the dispatcher seam is covered
+- missing runtime dispatcher dependency contracts are rejected when the provider module is not registered
 
 ## Compatibility Notes
 
@@ -119,3 +124,4 @@ Define the first typed link-facing protocol families on top of `saferunnet-servi
 - `crates/saferunnet-service`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`
+- `crates/saferunnet-app`

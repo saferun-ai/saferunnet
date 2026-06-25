@@ -34,6 +34,7 @@ This project will keep compatibility with Lokinet configuration and operational 
 2. Do not preserve problematic upstream structure merely for familiarity.
 3. Do not optimize for maximal crate diversity or experimental dependencies.
 4. Do not build the full protocol surface in one pass without stage gates and tests.
+5. Do not turn internal implementation details into a large collection of library-style micro-crates merely to appear modular.
 
 ## 4. Architecture Principles
 
@@ -101,6 +102,24 @@ The codebase must distinguish:
 - observability and operator tooling
 
 Core logic must remain testable without real sockets, tun devices, or filesystem state.
+
+### 4.5 Subsystem-First Modularization
+
+Modularization in this project means separating the system into clear responsibility-oriented subsystems, not splitting every internal capability into its own reusable library by default.
+
+Required interpretation:
+
+- `apps/` contains executable entrypoints and top-level composition only.
+- `crates/` contains subsystem implementation boundaries.
+- a crate should usually represent a meaningful runtime or domain subsystem, not a tiny helper abstraction.
+- internal code should prefer modules within a subsystem crate before introducing another crate boundary.
+- crate boundaries exist to reduce coupling between subsystems, not to scatter one subsystem across many package folders.
+
+Practical consequence:
+
+- if several crates are found to be one tightly related subsystem in practice, they should be merged into a coarser subsystem boundary instead of preserved as separate library-style crates for their own sake.
+- a binary entrypoint such as `apps/saferunnetd` must stay thin; moving everything into the binary is not the goal.
+- the preferred outcome is a small number of cohesive subsystem crates plus thin app entrypoints.
 
 ## 5. Phase Strategy
 
@@ -300,7 +319,7 @@ saferunnet/
 
 ### 7.1 Directory Rules
 
-1. `crates/` contains reusable implementation crates only.
+1. `crates/` contains subsystem implementation crates, not arbitrary reusable-library fragments.
 2. `apps/` contains top-level binaries and thin entrypoints.
 3. `tests/integration/` contains cross-crate behavior checks.
 4. `tests/interoperability/` contains compatibility and upstream-behavior validation.
@@ -314,6 +333,17 @@ saferunnet/
 3. Move platform-specific code into `saferunnet-platform` adapters.
 4. Keep protocol compatibility parsing in `saferunnet-compat-lokinet`.
 5. Promote shared test fixtures into `saferunnet-testing` instead of duplicating helpers.
+6. Prefer one cohesive subsystem crate with internal modules over several library-style crates when the code changes together, deploys together, and is understood as one subsystem.
+
+### 7.3 Coarse-Grained Subsystem Guidance
+
+The following interpretation should guide future refactors and merges:
+
+- `saferunnet-app` remains the runtime composition layer and should stay thin.
+- `saferunnet-config`, `saferunnet-compat-lokinet`, `saferunnet-crypto`, and `saferunnet-identity` are acceptable subsystem boundaries because they isolate distinct concerns.
+- networking concerns such as link, path, router, service-session dispatch, and later transport/session orchestration may begin as separate implementation slices, but they are expected to converge toward a cohesive network-facing subsystem boundary if they prove to be one evolving area.
+- therefore, the current multi-crate shape under `crates/saferunnet-link`, `crates/saferunnet-path`, `crates/saferunnet-router`, and `crates/saferunnet-service` should be treated as provisional architecture, not a permanent requirement.
+- implementation plans and reviews should prefer merging such crates when that reduces coupling and clarifies ownership without creating a god object.
 
 ## 8. Configuration Compatibility Strategy
 

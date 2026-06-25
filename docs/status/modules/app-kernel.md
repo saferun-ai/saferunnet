@@ -24,6 +24,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - explicit declared service dependency checks before wiring
 - identity service publication into the runtime registry
 - runtime identity bootstrap can now be composed from daemon-supplied settings without leaking config types into the kernel crate
+- link-message dispatcher service publication into the runtime registry through a dedicated `LinkMessageModule` seam
 
 ## Partially Implemented Items
 
@@ -48,6 +49,9 @@ Own startup, shutdown, state transitions, and module orchestration.
 - startup rollback on module failure is covered
 - missing declared service dependencies are rejected before wiring
 - runtime-identity module construction from daemon-supplied settings is covered indirectly through CLI bootstrap tests
+- runtime link-message dispatcher publication before dependent module startup is covered
+- dependent runtime modules decoding all current authenticated link families through the dispatcher seam is covered
+- missing declared dispatcher dependency without registering the link module is rejected before wiring
 
 ## Compatibility Notes
 
