@@ -1,16 +1,17 @@
 use std::sync::{Arc, Mutex};
 
 use saferunnet_app::{
-    AppKernel, LINK_MESSAGE_DISPATCHER_SERVICE_KEY, LINK_SESSION_STATE_SERVICE_KEY,
-    LinkMessageDispatcher, LinkMessageModule, LinkSessionState, LinkSessionStateModule,
+    AppKernel, LinkMessageDispatcher, LinkMessageModule, LinkSessionState, LinkSessionStateModule,
+    LINK_MESSAGE_DISPATCHER_SERVICE_KEY, LINK_SESSION_STATE_SERVICE_KEY,
 };
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{
     ActiveSession, AuthenticatedLinkMessage, AuthenticatedSessionAcceptMessage,
-    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, SessionAcceptMessage,
-    SessionHopId, SessionInitMessage, SessionPathSwitchMessage, SessionTag,
+    AuthenticatedSessionCloseMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedSessionPathSwitchMessage, SessionAcceptMessage, SessionCloseMessage, SessionHopId,
+    SessionInitMessage, SessionPathSwitchMessage, SessionTag,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -70,9 +71,22 @@ fn encoded_session_path_switch(identity: &NodeIdentity) -> Vec<u8> {
     .expect("encode should succeed")
 }
 
+fn encoded_session_close(identity: &NodeIdentity) -> Vec<u8> {
+    AuthenticatedSessionCloseMessage::sign(
+        identity,
+        SessionCloseMessage {
+            session_tag: SessionTag::new(77),
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed")
+}
+
 struct LinkSessionLifecycleModule {
     identity: NodeIdentity,
-    final_session: Option<ActiveSession>,
+    closed_session: Option<ActiveSession>,
+    active_after_close: Option<ActiveSession>,
 }
 
 impl RuntimeModule for LinkSessionLifecycleModule {
@@ -146,14 +160,30 @@ impl RuntimeModule for LinkSessionLifecycleModule {
         guard
             .apply_path_switch(&switch_message)
             .map_err(|error| ModuleError::Lifecycle(error.to_string()))?;
-        self.final_session = guard.active_session(SessionTag::new(77));
+        let close = dispatcher
+            .decode_verified(&encoded_session_close(&self.identity))
+            .expect("session-close should decode");
+        let close_message = match close {
+            AuthenticatedLinkMessage::SessionClose(inner) => inner.message().clone(),
+            _ => {
+                return Err(ModuleError::Lifecycle(
+                    "unexpected family while decoding session-close".to_string(),
+                ));
+            }
+        };
+        self.closed_session = Some(
+            guard
+                .close_active_session(&close_message)
+                .map_err(|error| ModuleError::Lifecycle(error.to_string()))?,
+        );
+        self.active_after_close = guard.active_session(SessionTag::new(77));
 
         Ok(())
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {
         assert_eq!(
-            self.final_session,
+            self.closed_session,
             Some(ActiveSession {
                 initiator: self.identity.public_key.clone(),
                 local_pivot: hop(0x33),
@@ -162,6 +192,7 @@ impl RuntimeModule for LinkSessionLifecycleModule {
                 session_tag: SessionTag::new(77),
             })
         );
+        assert_eq!(self.active_after_close, None);
         Ok(())
     }
 
@@ -171,7 +202,8 @@ impl RuntimeModule for LinkSessionLifecycleModule {
 }
 
 #[test]
-fn runtime_consumer_drives_init_accept_and_path_switch_through_dispatcher_and_state_service() {
+fn runtime_consumer_drives_init_accept_path_switch_and_close_through_dispatcher_and_state_service()
+{
     let identity = make_identity("consumer");
     let shared_state: LinkSessionState = Arc::new(Mutex::new(Default::default()));
     let mut kernel = AppKernel::new();
@@ -186,7 +218,8 @@ fn runtime_consumer_drives_init_accept_and_path_switch_through_dispatcher_and_st
             secret_key: identity.secret_key.clone(),
             public_key: identity.public_key.clone(),
         },
-        final_session: None,
+        closed_session: None,
+        active_after_close: None,
     }));
 
     kernel.start().expect("kernel should start");
@@ -195,14 +228,5 @@ fn runtime_consumer_drives_init_accept_and_path_switch_through_dispatcher_and_st
         .lock()
         .expect("session state lock should not be poisoned")
         .active_session(SessionTag::new(77));
-    assert_eq!(
-        final_session,
-        Some(ActiveSession {
-            initiator: identity.public_key,
-            local_pivot: hop(0x33),
-            remote_pivot: hop(0x44),
-            auth_token: Some(vec![0xaa, 0xbb]),
-            session_tag: SessionTag::new(77),
-        })
-    );
+    assert_eq!(final_session, None);
 }

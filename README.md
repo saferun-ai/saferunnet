@@ -7,7 +7,7 @@
 - Phase: Phase 0 complete, early Phase 1 and Phase 2 groundwork in progress
 - Spec: `docs/superpowers/specs/2026-06-25-saferunnet-rewrite-design.md`
 - Plan: `docs/superpowers/plans/2026-06-25-saferunnet-phase0-phase1-foundation.md`
-- Runtime: app kernel, service registry, config normalization, config-driven identity bootstrap, concrete Ed25519 key generation, signed-envelope codecs, identity proofs, authenticated service messages, the first typed router announcement boundary, typed link path-control/session-init/session-accept/session-path-switch boundaries, and the unified typed link-message decode/dispatch boundary are available as tested foundations through `saferunnet-service`, with `saferunnet-app` now consuming that seam directly and publishing the first shared in-memory session-state seam
+- Runtime: app kernel, service registry, config normalization, config-driven identity bootstrap, concrete Ed25519 key generation, signed-envelope codecs, identity proofs, authenticated service messages, the first typed router announcement boundary, typed link path-control/session-init/session-accept/session-path-switch/session-close boundaries, and the unified typed link-message decode/dispatch boundary are available as tested foundations through `saferunnet-service`, with `saferunnet-app` now consuming that seam directly and publishing the first shared in-memory session-state seam including pure active-session teardown
 
 ## Bootstrap Commands
 

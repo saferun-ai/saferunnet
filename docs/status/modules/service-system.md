@@ -24,24 +24,25 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `ServiceMessageKind::LinkSessionInit` for the first typed link session-init payload family
 - dedicated `ServiceMessageKind::LinkSessionAccept` for the first typed link session-accept payload family
 - dedicated `ServiceMessageKind::LinkSessionPathSwitch` for the first typed link session path-switch payload family
+- dedicated `ServiceMessageKind::LinkSessionClose` for the typed link session-close payload family
 - the router-announcement typed family now lives directly in `saferunnet-service`
 - downstream typed consumers and the first pure session-state component now exist directly in `saferunnet-service`, with `saferunnet-app` consuming that seam
 
 ## Partially Implemented Items
 
 - the service body is still opaque bytes at this layer even when downstream crates impose richer typed payload contracts
-- only six message kinds exist so far: `Announcement`, `RouterAnnouncement`, `LinkPathControl`, `LinkSessionInit`, `LinkSessionAccept`, and `LinkSessionPathSwitch`
+- only seven message kinds exist so far: `Announcement`, `RouterAnnouncement`, `LinkPathControl`, `LinkSessionInit`, `LinkSessionAccept`, `LinkSessionPathSwitch`, and `LinkSessionClose`
 
 ## Not Yet Implemented
 
-- broader link negotiation or session messages beyond the first typed path-control, session-init, session-accept, and session-path-switch families
+- broader link negotiation or session messages beyond the first typed path-control, session-init, session-accept, session-path-switch, and session-close families
 - richer service-session lifecycle coordination beyond the current in-memory state component
 - compatibility mapping to any upstream Lokinet message formats
 
 ## Known Risks
 
 - current service-message payload body is still opaque bytes and not yet decomposed into richer domain-specific message types
-- only the router announcement family plus the first link path-control, session-init, session-accept, and session-path-switch families currently consume the service boundary
+- only the router announcement family plus the first link path-control, session-init, session-accept, session-path-switch, and session-close families currently consume the service boundary
 - no app/runtime pipeline uses `saferunnet-service` over a real transport yet
 
 ## Test Coverage State
@@ -58,6 +59,7 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `LinkSessionInit` service-kind round-trip coverage is present
 - dedicated `LinkSessionAccept` service-kind round-trip coverage is present
 - dedicated `LinkSessionPathSwitch` service-kind round-trip coverage is present
+- dedicated `LinkSessionClose` service-kind round-trip coverage is present
 
 ## Compatibility Notes
 

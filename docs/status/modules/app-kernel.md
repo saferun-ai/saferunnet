@@ -52,7 +52,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - runtime-identity module construction from daemon-supplied settings is covered indirectly through CLI bootstrap tests
 - runtime link-message dispatcher publication before dependent module startup is covered
 - dependent runtime modules decoding all current authenticated link families through the dispatcher seam is covered
-- dependent runtime modules driving init -> accept -> path-switch through the dispatcher plus shared session-state seam is covered
+- dependent runtime modules driving init -> accept -> path-switch -> close through the dispatcher plus shared session-state seam is covered
 - missing declared dispatcher dependency without registering the link module is rejected before wiring
 
 ## Compatibility Notes

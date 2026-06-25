@@ -2,9 +2,10 @@ use thiserror::Error;
 
 use crate::{
     AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
-    AuthenticatedSessionAcceptMessage, AuthenticatedSessionInitMessage,
-    AuthenticatedSessionPathSwitchMessage, PathControlError, ServiceMessageError,
-    ServiceMessageKind, SessionAcceptError, SessionInitError, SessionPathSwitchError,
+    AuthenticatedSessionAcceptMessage, AuthenticatedSessionCloseMessage,
+    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, PathControlError,
+    ServiceMessageError, ServiceMessageKind, SessionAcceptError, SessionCloseError,
+    SessionInitError, SessionPathSwitchError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,6 +14,7 @@ pub enum AuthenticatedLinkMessage {
     SessionInit(AuthenticatedSessionInitMessage),
     SessionAccept(AuthenticatedSessionAcceptMessage),
     SessionPathSwitch(AuthenticatedSessionPathSwitchMessage),
+    SessionClose(AuthenticatedSessionCloseMessage),
 }
 
 impl AuthenticatedLinkMessage {
@@ -36,6 +38,7 @@ impl AuthenticatedLinkMessage {
             Self::SessionInit(message) => message.service_message(),
             Self::SessionAccept(message) => message.service_message(),
             Self::SessionPathSwitch(message) => message.service_message(),
+            Self::SessionClose(message) => message.service_message(),
         }
     }
 
@@ -63,6 +66,11 @@ impl AuthenticatedLinkMessage {
                     service_message,
                 )?,
             )),
+            ServiceMessageKind::LinkSessionClose => Ok(Self::SessionClose(
+                AuthenticatedSessionCloseMessage::from_authenticated_service_message(
+                    service_message,
+                )?,
+            )),
             unsupported => Err(LinkMessageError::UnsupportedServiceKind(unsupported)),
         }
     }
@@ -82,4 +90,6 @@ pub enum LinkMessageError {
     SessionAccept(#[from] SessionAcceptError),
     #[error(transparent)]
     SessionPathSwitch(#[from] SessionPathSwitchError),
+    #[error(transparent)]
+    SessionClose(#[from] SessionCloseError),
 }

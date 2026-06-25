@@ -21,6 +21,9 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - `SessionPathSwitchMessage`
 - `AuthenticatedSessionPathSwitchMessage`
 - `SessionPathSwitchError`
+- `SessionCloseMessage`
+- `AuthenticatedSessionCloseMessage`
+- `SessionCloseError`
 - `SessionState`
 - `SessionStateError`
 - `ActiveSession`
@@ -35,6 +38,7 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - deterministic project-owned session-init payload framing
 - deterministic project-owned session-accept payload framing
 - deterministic project-owned session-path-switch payload framing
+- deterministic project-owned session-close payload framing
 - `PathControlMessage::Ping(PathPing)` as the first typed link-facing control variant
 - `PathPing` typed payload with `request_id: u64`
 - `AuthenticatedPathControlMessage` wrapper over `AuthenticatedServiceMessage`
@@ -46,7 +50,9 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - `AuthenticatedSessionAcceptMessage` wrapper over `AuthenticatedServiceMessage`
 - `SessionPathSwitchMessage` typed payload carrying local pivot hop id, remote pivot hop id, and session tag
 - `AuthenticatedSessionPathSwitchMessage` wrapper over `AuthenticatedServiceMessage`
-- `SessionState` as a pure in-memory service-owned component that records pending init messages, promotes accepted sessions, and applies path switches by tag
+- `SessionCloseMessage` typed payload carrying only a session tag, following the current upstream semantic reference
+- `AuthenticatedSessionCloseMessage` wrapper over `AuthenticatedServiceMessage`
+- `SessionState` as a pure in-memory service-owned component that records pending init messages, promotes accepted sessions, applies path switches by tag, and removes active sessions by close tag
 - `ActiveSession` snapshots exposed for deterministic assertions without app-kernel setup
 - `AuthenticatedLinkMessage` unified typed decode/dispatch boundary over current authenticated link families
 - `LinkMessageError` typed error boundary for lower-level service decode/auth errors, unsupported service kinds, and family-specific typed decode failures
@@ -55,15 +61,18 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - verified decode authenticates the lower-level service message before typed session-init parsing
 - verified decode authenticates the lower-level service message before typed session-accept parsing
 - verified decode authenticates the lower-level service message before typed session-path-switch parsing
+- verified decode authenticates the lower-level service message before typed session-close parsing
 - unified dispatcher decodes `AuthenticatedServiceMessage` once, branches by `ServiceMessageKind`, and then performs family-specific typed parsing
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkPathControl` service kind, and exact body equality
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionInit` service kind, and exact body equality
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionAccept` service kind, and exact body equality
 - wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionPathSwitch` service kind, and exact body equality
+- wrapper verification enforces lower-level service-message verification, the dedicated `LinkSessionClose` service kind, and exact body equality
 - typed path-control dispatch rejects unsupported variants, unsupported versions, truncated ping bodies, and trailing payload bytes
 - typed session-init dispatch rejects unsupported initiator algorithm ids, malformed auth-token framing, truncated auth-token payloads, and trailing payload bytes
 - typed session-accept dispatch rejects unsupported versions, truncated payloads, and trailing payload bytes
 - typed session-path-switch dispatch rejects unsupported versions, truncated payloads, and trailing payload bytes
+- typed session-close dispatch rejects unsupported versions, truncated payloads, and trailing payload bytes
 - first app/runtime consumer seam for unified link decode via `saferunnet-app::LinkMessageDispatcher`, now backed directly by `saferunnet-service`
 - `saferunnet-app::LinkMessageModule` runtime publication path for the dispatcher through `ServiceRegistry`
 - first app/runtime session-state seam via `saferunnet-app::LinkSessionStateModule`, publishing shared in-memory state through `ServiceRegistry`
@@ -74,6 +83,7 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - only one typed session-init family exists so far
 - only one typed session-accept family exists so far
 - only one typed session-path-switch family exists so far
+- only one typed session-close family exists so far
 - link payload framing is still family-specific and not yet shared across later link families
 - session state is still intentionally in-memory only and does not coordinate multiple peers or transports yet
 
@@ -81,7 +91,7 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 
 - additional path-control variants beyond ping
 - DH encryption, transport, peer IO, or persistence for the current session lifecycle families
-- additional typed link session close, negotiation, or circuit-building families
+- additional typed link session negotiation or circuit-building families
 - transport/runtime integration
 - compatibility mapping to upstream Lokinet link messages
 
@@ -120,14 +130,20 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - session-path-switch tampered signed payload rejection is covered
 - session-path-switch unsupported, truncated, and trailing-bytes payload rejection is covered
 - session-path-switch verified decode authentication ordering against tampered typed payloads is covered
-- unified link-message decode/dispatch round-trip for path-control, session-init, session-accept, and session-path-switch is covered
+- session-close sign/verify round-trip is covered
+- session-close encode/decode round-trip is covered
+- session-close wrong lower-level service kind rejection is covered
+- session-close tampered signed payload rejection is covered
+- session-close unsupported, truncated, and trailing-bytes payload rejection is covered
+- session-close verified decode authentication ordering against tampered typed payloads is covered
+- unified link-message decode/dispatch round-trip for path-control, session-init, session-accept, session-path-switch, and session-close is covered
 - unified dispatcher rejection of non-link service kinds is covered
 - unified verified decode preference for lower-level auth failure over typed parse failure is covered
 - unified unverified decode surfacing of family-specific typed parse errors is covered
 - runtime-kernel wiring for dispatcher publication and consumption is covered
-- pure session-state record/promote/path-switch behavior is covered
-- runtime consumer decode coverage for path-control, session-init, session-accept, and session-path-switch through the dispatcher seam is covered
-- runtime consumer lifecycle driving of init -> accept -> path-switch through dispatcher plus state seam is covered
+- pure session-state record/promote/path-switch/close behavior is covered
+- runtime consumer decode coverage for path-control, session-init, session-accept, session-path-switch, and session-close through the dispatcher seam is covered
+- runtime consumer lifecycle driving of init -> accept -> path-switch -> close through dispatcher plus state seam is covered
 - missing runtime dispatcher dependency contracts are rejected when the provider module is not registered
 
 ## Compatibility Notes
@@ -136,13 +152,14 @@ Define the first typed link-facing protocol families in `saferunnet-service` and
 - the session-init slice is inspired by Lokinet `InitiateSession` inner payload semantics (`i`, `p`, `r`, `u`)
 - the session-accept slice is inspired by Lokinet `InitiateSession::serialize_response` / `deserialize_response`, where the response currently carries only the session tag
 - the session-path-switch slice is inspired by Lokinet `SessionPathSwitch` inner payload semantics (`p`, `r`, `t`)
+- the session-close slice is inspired by Lokinet `CloseSession` semantics carrying a session tag
 - the framing and typed APIs are project-owned and not wire-compatible with upstream Lokinet
 
 ## Next Recommended Tasks
 
 - add the next typed path-control variant only when a concrete consumer exists
-- keep the session-state seam pure while deciding the next caller-facing coordinator around init -> accept -> path-switch
-- define the next typed session family beside session-init, session-accept, and session-path-switch only when runtime needs it first
+- keep the session-state seam pure while deciding the next caller-facing coordinator around init -> accept -> path-switch -> close
+- define the next typed session family beside session-init, session-accept, session-path-switch, and session-close only when runtime needs it first
 - connect typed link control and the current session lifecycle families to a higher runtime component once a concrete transport consumer exists
 - decide whether later link session work should share a common framing helper across typed families
 

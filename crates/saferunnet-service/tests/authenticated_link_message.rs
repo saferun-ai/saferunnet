@@ -5,10 +5,11 @@ use saferunnet_crypto::{
 use saferunnet_identity::{IdentityProof, NodeIdentity};
 use saferunnet_service::{
     AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
-    AuthenticatedSessionAcceptMessage, AuthenticatedSessionInitMessage,
-    AuthenticatedSessionPathSwitchMessage, LinkMessageError, PathControlMessage, PathPing,
-    ServiceMessageError, ServiceMessageKind, SessionAcceptMessage, SessionHopId, SessionInitError,
-    SessionInitMessage, SessionPathSwitchError, SessionPathSwitchMessage, SessionTag,
+    AuthenticatedSessionAcceptMessage, AuthenticatedSessionCloseMessage,
+    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, LinkMessageError,
+    PathControlMessage, PathPing, ServiceMessageError, ServiceMessageKind, SessionAcceptMessage,
+    SessionCloseError, SessionCloseMessage, SessionHopId, SessionInitError, SessionInitMessage,
+    SessionPathSwitchError, SessionPathSwitchMessage, SessionTag,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -168,6 +169,29 @@ fn decode_dispatch_round_trip_session_path_switch() {
 }
 
 #[test]
+fn decode_dispatch_round_trip_session_close() {
+    let identity = make_identity("alice");
+    let encoded = AuthenticatedSessionCloseMessage::sign(
+        &identity,
+        SessionCloseMessage {
+            session_tag: SessionTag::new(77),
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::SessionClose(inner) => {
+            assert_eq!(inner.message().session_tag, SessionTag::new(77));
+            inner.verify().expect("decoded session-close should verify");
+        }
+        _ => panic!("expected session-close variant"),
+    }
+}
+
+#[test]
 fn non_link_service_kind_is_rejected_by_dispatcher() {
     let identity = make_identity("alice");
     let encoded =
@@ -243,5 +267,28 @@ fn unverified_decode_surfaces_family_specific_typed_parse_error() {
         LinkMessageError::SessionPathSwitch(SessionPathSwitchError::UnsupportedPayloadVersion(
             0x7f
         ))
+    ));
+}
+
+#[test]
+fn unverified_decode_surfaces_session_close_typed_parse_error() {
+    let identity = make_identity("alice");
+    let signed = AuthenticatedSessionCloseMessage::sign(
+        &identity,
+        SessionCloseMessage {
+            session_tag: SessionTag::new(456),
+        },
+    )
+    .expect("sign should succeed");
+
+    let encoded = tamper_signed_service_payload(signed.service_message(), |payload| {
+        payload[6] = 0x7f;
+    });
+
+    let error = AuthenticatedLinkMessage::decode_unverified(&encoded)
+        .expect_err("unverified decode should surface typed parse failure");
+    assert!(matches!(
+        error,
+        LinkMessageError::SessionClose(SessionCloseError::UnsupportedPayloadVersion(0x7f))
     ));
 }

@@ -1,6 +1,9 @@
 use thiserror::Error;
 
-use crate::{SessionAcceptMessage, SessionInitMessage, SessionPathSwitchMessage, SessionTag};
+use crate::{
+    SessionAcceptMessage, SessionCloseMessage, SessionInitMessage, SessionPathSwitchMessage,
+    SessionTag,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveSession {
@@ -78,6 +81,18 @@ impl SessionState {
         session.local_pivot = message.local_pivot;
         session.remote_pivot = message.remote_pivot;
         Ok(())
+    }
+
+    pub fn close_active_session(
+        &mut self,
+        message: &SessionCloseMessage,
+    ) -> Result<ActiveSession, SessionStateError> {
+        let session_index = self
+            .active_sessions
+            .iter()
+            .position(|session| session.session_tag == message.session_tag)
+            .ok_or(SessionStateError::ActiveSessionNotFound)?;
+        Ok(self.active_sessions.remove(session_index))
     }
 
     pub fn active_session(&self, session_tag: SessionTag) -> Option<ActiveSession> {

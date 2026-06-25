@@ -6,6 +6,7 @@ mod link_message;
 mod path_control;
 mod router_announcement;
 mod session_accept;
+mod session_close;
 mod session_init;
 mod session_path_switch;
 mod session_state;
@@ -21,6 +22,7 @@ pub use router_announcement::{
 pub use session_accept::{
     AuthenticatedSessionAcceptMessage, SessionAcceptError, SessionAcceptMessage,
 };
+pub use session_close::{AuthenticatedSessionCloseMessage, SessionCloseError, SessionCloseMessage};
 pub use session_init::{AuthenticatedSessionInitMessage, SessionInitError, SessionInitMessage};
 pub use session_path_switch::{
     AuthenticatedSessionPathSwitchMessage, SessionPathSwitchError, SessionPathSwitchMessage,
@@ -41,6 +43,7 @@ pub enum ServiceMessageKind {
     LinkSessionInit,
     LinkSessionPathSwitch,
     LinkSessionAccept,
+    LinkSessionClose,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,7 +170,9 @@ pub enum ServiceMessageError {
     PayloadMismatch,
     #[error("service message signer does not match identity proof public key")]
     SignerMismatch,
-    #[error("service message `{field}` exceeds encoded limit `{max}` with length `{length}` bytes")]
+    #[error(
+        "service message `{field}` exceeds encoded limit `{max}` with length `{length}` bytes"
+    )]
     FrameLengthOverflow {
         field: &'static str,
         length: usize,
@@ -286,6 +291,7 @@ fn encode_kind(kind: ServiceMessageKind) -> u8 {
         ServiceMessageKind::LinkSessionInit => 4,
         ServiceMessageKind::LinkSessionPathSwitch => 5,
         ServiceMessageKind::LinkSessionAccept => 6,
+        ServiceMessageKind::LinkSessionClose => 7,
     }
 }
 
@@ -297,6 +303,7 @@ fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
         4 => Ok(ServiceMessageKind::LinkSessionInit),
         5 => Ok(ServiceMessageKind::LinkSessionPathSwitch),
         6 => Ok(ServiceMessageKind::LinkSessionAccept),
+        7 => Ok(ServiceMessageKind::LinkSessionClose),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),

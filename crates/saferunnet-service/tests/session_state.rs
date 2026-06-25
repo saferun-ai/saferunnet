@@ -1,7 +1,7 @@
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{
-    ActiveSession, SessionAcceptMessage, SessionHopId, SessionInitMessage,
+    ActiveSession, SessionAcceptMessage, SessionCloseMessage, SessionHopId, SessionInitMessage,
     SessionPathSwitchMessage, SessionState, SessionStateError, SessionTag,
 };
 
@@ -147,6 +147,61 @@ fn path_switch_requires_existing_active_session() {
     let error = SessionState::new()
         .apply_path_switch(&path_switch)
         .expect_err("path switch should require active session");
+
+    assert!(matches!(error, SessionStateError::ActiveSessionNotFound));
+}
+
+#[test]
+fn close_removes_active_session_and_returns_removed_snapshot() {
+    let identity = make_identity("alice");
+    let init = init_message(&identity);
+    let accept = SessionAcceptMessage {
+        session_tag: SessionTag::new(77),
+    };
+    let path_switch = SessionPathSwitchMessage {
+        local_pivot: hop(0x33),
+        remote_pivot: hop(0x44),
+        session_tag: SessionTag::new(77),
+    };
+    let close = SessionCloseMessage {
+        session_tag: SessionTag::new(77),
+    };
+
+    let mut state = SessionState::new();
+    state.record_pending_init(init.clone());
+    state
+        .accept_pending_init(&init, &accept)
+        .expect("pending init should promote");
+    state
+        .apply_path_switch(&path_switch)
+        .expect("active session should switch paths");
+
+    let removed = state
+        .close_active_session(&close)
+        .expect("active session should be removed");
+    assert_eq!(
+        removed,
+        ActiveSession {
+            initiator: identity.public_key,
+            local_pivot: hop(0x33),
+            remote_pivot: hop(0x44),
+            auth_token: Some(vec![0xaa, 0xbb]),
+            session_tag: SessionTag::new(77),
+        }
+    );
+    assert_eq!(state.active_session_count(), 0);
+    assert_eq!(state.active_session(SessionTag::new(77)), None);
+}
+
+#[test]
+fn close_requires_existing_active_session() {
+    let close = SessionCloseMessage {
+        session_tag: SessionTag::new(88),
+    };
+
+    let error = SessionState::new()
+        .close_active_session(&close)
+        .expect_err("close should require active session");
 
     assert!(matches!(error, SessionStateError::ActiveSessionNotFound));
 }
