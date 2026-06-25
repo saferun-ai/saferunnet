@@ -11,6 +11,8 @@ Define project-owned cryptographic key material contracts without forcing the re
 - `KeyPair`
 - `PublicKey`
 - `SecretKey`
+- `Signature`
+- `SignatureError`
 
 ## Implemented Items
 
@@ -21,6 +23,8 @@ Define project-owned cryptographic key material contracts without forcing the re
 - project-owned key generation contract and generated key-pair shape
 - concrete Ed25519 generator backed by `ed25519-dalek`
 - redacted `SecretKey` debug output and zeroization on drop
+- project-owned Ed25519 signing and verification contracts
+- project-owned signature container with algorithm tagging and verification diagnostics
 
 ## Partially Implemented Items
 
@@ -29,7 +33,6 @@ Define project-owned cryptographic key material contracts without forcing the re
 
 ## Not Yet Implemented
 
-- signature operations
 - curve conversion or DH helpers
 - blinded key support
 
@@ -49,16 +52,19 @@ Define project-owned cryptographic key material contracts without forcing the re
 - secret-key debug redaction is covered
 - streaming hex append behavior is covered
 - generation contract behavior is exercised through identity bootstrap tests
+- signature round-trip behavior is covered
+- wrong-message and wrong-key verification failures are covered
+- invalid signature material rejection is covered
 
 ## Compatibility Notes
 
-- naming aligns with Lokinet's Ed25519 identity usage, and real key generation now exists behind project-owned contracts; signing is still not exposed yet
+- naming aligns with Lokinet's Ed25519 identity usage, and Ed25519 signing/verification now exists behind project-owned contracts
 
 ## Next Recommended Tasks
 
-- add signing and verification contracts
 - add backend-isolation tests around signing and verification so future provider swaps stay safe
 - add blinded or transport-key abstractions only when callers exist
+- decide whether future multi-algorithm support should keep `Signature` as a variable-length container or introduce per-algorithm wrappers
 
 ## Files and Crates Involved
 

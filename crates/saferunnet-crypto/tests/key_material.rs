@@ -1,5 +1,6 @@
-use ed25519_dalek::SigningKey;
-use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator, PublicKey, SecretKey};
+use saferunnet_crypto::{
+    Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator, PublicKey, SecretKey, Signature,
+};
 
 #[test]
 fn public_key_hex_round_trips() {
@@ -35,14 +36,9 @@ fn ed25519_generator_produces_a_consistent_keypair() {
     let generator = Ed25519KeyGenerator::new();
     let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
 
-    let signing_key = SigningKey::from_bytes(&pair.secret_key.to_bytes());
-
     assert_eq!(pair.secret_key.algorithm(), KeyAlgorithm::Ed25519);
     assert_eq!(pair.public_key.algorithm(), KeyAlgorithm::Ed25519);
-    assert_eq!(
-        signing_key.verifying_key().to_bytes(),
-        pair.public_key.to_bytes()
-    );
+    assert_eq!(pair.secret_key.public_key(), pair.public_key);
 }
 
 #[test]
@@ -75,5 +71,61 @@ fn key_material_can_append_hex_into_an_existing_string() {
     assert_eq!(
         output,
         "prefix:0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20|202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+    );
+}
+
+#[test]
+fn signature_round_trips_with_secret_and_public_key() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let message = b"saferunnet signing round trip";
+
+    let signature = pair.secret_key.sign(message).unwrap();
+
+    assert_eq!(signature.algorithm(), KeyAlgorithm::Ed25519);
+    assert_eq!(signature.as_bytes().len(), 64);
+    assert!(pair.public_key.verify(message, &signature).is_ok());
+}
+
+#[test]
+fn verification_fails_for_wrong_message() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let signature = pair.secret_key.sign(b"original").unwrap();
+
+    let error = pair.public_key.verify(b"tampered", &signature).unwrap_err();
+
+    assert_eq!(error, saferunnet_crypto::SignatureError::VerificationFailed);
+}
+
+#[test]
+fn verification_fails_for_wrong_public_key() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let other_pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let signature: Signature = pair.secret_key.sign(b"shared message").unwrap();
+
+    let error = other_pair
+        .public_key
+        .verify(b"shared message", &signature)
+        .unwrap_err();
+
+    assert_eq!(error, saferunnet_crypto::SignatureError::VerificationFailed);
+}
+
+#[test]
+fn verification_rejects_invalid_signature_material() {
+    let generator = Ed25519KeyGenerator::new();
+    let pair = generator.generate(KeyAlgorithm::Ed25519).unwrap();
+    let invalid_signature = Signature::from_bytes(KeyAlgorithm::Ed25519, vec![0u8; 63]);
+
+    let error = pair
+        .public_key
+        .verify(b"message", &invalid_signature)
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        saferunnet_crypto::SignatureError::InvalidSignatureMaterial
     );
 }

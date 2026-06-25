@@ -99,6 +99,31 @@ impl PublicKey {
     pub fn to_hex(&self) -> String {
         encode_hex(&self.bytes)
     }
+
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
+        if self.algorithm != signature.algorithm {
+            return Err(SignatureError::AlgorithmMismatch {
+                key: self.algorithm,
+                signature: signature.algorithm,
+            });
+        }
+
+        match self.algorithm {
+            KeyAlgorithm::Ed25519 => {
+                let verifying_key = ed25519_dalek::VerifyingKey::from_bytes(&self.bytes)
+                    .map_err(|_| SignatureError::InvalidKeyMaterial)?;
+                let signature_bytes: [u8; 64] = signature
+                    .bytes
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| SignatureError::InvalidSignatureMaterial)?;
+                let dalek_signature = ed25519_dalek::Signature::from_bytes(&signature_bytes);
+                verifying_key
+                    .verify_strict(message, &dalek_signature)
+                    .map_err(|_| SignatureError::VerificationFailed)
+            }
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -134,6 +159,31 @@ impl SecretKey {
     pub fn to_hex(&self) -> String {
         encode_hex(&self.bytes)
     }
+
+    pub fn public_key(&self) -> PublicKey {
+        match self.algorithm {
+            KeyAlgorithm::Ed25519 => {
+                let signing_key = ed25519_dalek::SigningKey::from_bytes(&self.bytes);
+                PublicKey::from_bytes(
+                    KeyAlgorithm::Ed25519,
+                    signing_key.verifying_key().to_bytes(),
+                )
+            }
+        }
+    }
+
+    pub fn sign(&self, message: &[u8]) -> Result<Signature, SignatureError> {
+        match self.algorithm {
+            KeyAlgorithm::Ed25519 => {
+                let signing_key = ed25519_dalek::SigningKey::from_bytes(&self.bytes);
+                let signature = ed25519_dalek::Signer::sign(&signing_key, message);
+                Ok(Signature {
+                    algorithm: KeyAlgorithm::Ed25519,
+                    bytes: signature.to_bytes().to_vec(),
+                })
+            }
+        }
+    }
 }
 
 impl std::fmt::Debug for SecretKey {
@@ -152,6 +202,30 @@ impl Drop for SecretKey {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature {
+    algorithm: KeyAlgorithm,
+    bytes: Vec<u8>,
+}
+
+impl Signature {
+    pub fn from_bytes(algorithm: KeyAlgorithm, bytes: Vec<u8>) -> Self {
+        Self { algorithm, bytes }
+    }
+
+    pub fn algorithm(&self) -> KeyAlgorithm {
+        self.algorithm
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.bytes.clone()
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum KeyMaterialError {
     #[error("unsupported key algorithm `{0}`")]
@@ -166,6 +240,21 @@ pub enum KeyMaterialError {
 pub enum KeyGenerationError {
     #[error("key generation failed: {0}")]
     Failed(String),
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum SignatureError {
+    #[error("signature and key algorithm mismatch (`{key:?}` vs `{signature:?}`)")]
+    AlgorithmMismatch {
+        key: KeyAlgorithm,
+        signature: KeyAlgorithm,
+    },
+    #[error("invalid signature material for verification")]
+    InvalidSignatureMaterial,
+    #[error("invalid key material for signing or verification")]
+    InvalidKeyMaterial,
+    #[error("signature verification failed")]
+    VerificationFailed,
 }
 
 fn decode_hex_32(input: &str) -> Result<[u8; 32], KeyMaterialError> {
