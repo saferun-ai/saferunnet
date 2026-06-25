@@ -1,5 +1,5 @@
 use saferunnet_app::AppKernel;
-use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule};
+use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule, ServiceRegistry};
 use std::sync::{Arc, Mutex};
 
 struct RecordingModule {
@@ -25,6 +25,40 @@ impl RuntimeModule for RecordingModule {
             .lock()
             .unwrap()
             .push(format!("stop:{}", self.name));
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SharedNickname(&'static str);
+
+struct WiringModule {
+    captured: Option<String>,
+}
+
+impl RuntimeModule for WiringModule {
+    fn name(&self) -> &'static str {
+        "wiring"
+    }
+
+    fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {
+        let nickname = services
+            .get::<SharedNickname>()
+            .ok_or_else(|| ModuleError::Lifecycle("missing SharedNickname".to_string()))?;
+        self.captured = Some(nickname.0.to_string());
+        Ok(())
+    }
+
+    fn start(&mut self) -> Result<(), ModuleError> {
+        let captured = self
+            .captured
+            .as_deref()
+            .ok_or_else(|| ModuleError::Lifecycle("module started before wiring".to_string()))?;
+        assert_eq!(captured, "edge-service");
+        Ok(())
+    }
+
+    fn stop(&mut self) -> Result<(), ModuleError> {
         Ok(())
     }
 }
@@ -59,4 +93,15 @@ fn kernel_rejects_double_start() {
     kernel.start().unwrap();
     let error = kernel.start().unwrap_err();
     assert!(error.to_string().contains("cannot start"));
+}
+
+#[test]
+fn kernel_wires_registered_services_before_start() {
+    let mut kernel = AppKernel::new();
+    kernel.services_mut().insert(SharedNickname("edge-service"));
+    kernel.register(Box::new(WiringModule { captured: None }));
+
+    kernel.start().unwrap();
+
+    assert_eq!(kernel.state(), LifecycleState::Running);
 }

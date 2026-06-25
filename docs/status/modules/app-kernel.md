@@ -9,6 +9,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 - `AppKernel`
 - `RuntimeModule`
 - `LifecycleState`
+- `ServiceRegistry`
 
 ## Implemented Items
 
@@ -16,16 +17,18 @@ Own startup, shutdown, state transitions, and module orchestration.
 - module registration
 - startup ordering
 - reverse shutdown ordering
+- typed service registry
+- module wiring before startup
 
 ## Partially Implemented Items
 
-- none yet
+- service registration exists, but dependency policies between modules are still shallow
 
 ## Not Yet Implemented
 
-- lifecycle state machine
-- module startup/shutdown ordering
 - shutdown rollback
+- richer module error categories
+- declarative service dependency contracts
 
 ## Known Risks
 
@@ -35,6 +38,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 
 - lifecycle ordering tests pass
 - duplicate start protection is covered
+- service wiring before startup is covered
 
 ## Compatibility Notes
 
@@ -43,7 +47,7 @@ Own startup, shutdown, state transitions, and module orchestration.
 ## Next Recommended Tasks
 
 - add structured shutdown rollback
-- introduce service dependency wiring
+- expand service dependency contracts beyond type lookup
 - add richer module error categories
 
 ## Files and Crates Involved

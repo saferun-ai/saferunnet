@@ -7,6 +7,7 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 ## Public Interfaces
 
 - `load_from_str`
+- `load_from_file`
 - `NormalizedConfig`
 - `RawLokinetConfig`
 
@@ -16,16 +17,18 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 - typed normalized configuration model
 - default router and logging values
 - actionable line-number parse diagnostics
+- file-based config loading
+- blank router nickname validation
 
 ## Partially Implemented Items
 
-- none yet
+- validation exists for a small subset of fields only
 
 ## Not Yet Implemented
 
-- compatibility parser
-- normalization rules
-- diagnostics
+- broader normalization rules
+- richer compatibility fixtures
+- multi-file or environment-aware config resolution
 
 ## Known Risks
 
@@ -35,6 +38,8 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 
 - config normalization defaults are covered
 - invalid line diagnostics are covered
+- file-based loading is covered
+- blank nickname validation is covered
 
 ## Compatibility Notes
 
@@ -42,9 +47,9 @@ Load Lokinet-style configuration, validate it, and normalize it for internal run
 
 ## Next Recommended Tasks
 
-- add file-based loading APIs
 - add richer validation rules
 - add compatibility fixtures from real Lokinet samples
+- add config source layering if Lokinet compatibility requires it
 
 ## Files and Crates Involved
 
