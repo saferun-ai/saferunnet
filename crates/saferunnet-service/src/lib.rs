@@ -12,6 +12,7 @@ pub enum ServiceMessageKind {
     Announcement,
     RouterAnnouncement,
     LinkPathControl,
+    LinkSessionInit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -254,6 +255,7 @@ fn encode_kind(kind: ServiceMessageKind) -> u8 {
         ServiceMessageKind::Announcement => 1,
         ServiceMessageKind::RouterAnnouncement => 2,
         ServiceMessageKind::LinkPathControl => 3,
+        ServiceMessageKind::LinkSessionInit => 4,
     }
 }
 
@@ -262,6 +264,7 @@ fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
         1 => Ok(ServiceMessageKind::Announcement),
         2 => Ok(ServiceMessageKind::RouterAnnouncement),
         3 => Ok(ServiceMessageKind::LinkPathControl),
+        4 => Ok(ServiceMessageKind::LinkSessionInit),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),

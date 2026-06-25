@@ -7,9 +7,9 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
+saferunnet-crypto = { path = "../saferunnet-crypto" }
 saferunnet-identity = { path = "../saferunnet-identity" }
 saferunnet-service = { path = "../saferunnet-service" }
 thiserror.workspace = true
 
 [dev-dependencies]
-saferunnet-crypto = { path = "../saferunnet-crypto" }

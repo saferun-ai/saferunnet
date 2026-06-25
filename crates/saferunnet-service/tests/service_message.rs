@@ -121,6 +121,24 @@ fn link_path_control_service_kind_round_trip_preserves_kind() {
 }
 
 #[test]
+fn link_session_init_service_kind_round_trip_preserves_kind() {
+    let identity = make_identity("alice");
+    let message = AuthenticatedServiceMessage::sign(
+        &identity,
+        ServiceMessageKind::LinkSessionInit,
+        b"session-ready".to_vec(),
+    )
+    .expect("sign should succeed");
+
+    let encoded = message.encode().expect("encode should succeed");
+    let decoded = AuthenticatedServiceMessage::decode(&encoded).expect("decode should succeed");
+
+    assert_eq!(decoded.kind(), ServiceMessageKind::LinkSessionInit);
+    assert_eq!(decoded.body(), b"session-ready");
+    decoded.verify().expect("decoded message should verify");
+}
+
+#[test]
 fn decode_verified_accepts_valid_message() {
     let identity = make_identity("alice");
     let message = AuthenticatedServiceMessage::sign(

@@ -21,23 +21,24 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - signer/proof/payload consistency checks during service-message verification
 - dedicated `ServiceMessageKind::RouterAnnouncement` alongside the existing `Announcement` kind
 - dedicated `ServiceMessageKind::LinkPathControl` for typed link-facing control payloads
+- dedicated `ServiceMessageKind::LinkSessionInit` for the first typed link session-init payload family
 - downstream typed consumers now exist in `saferunnet-router` and `saferunnet-link`
 
 ## Partially Implemented Items
 
 - the service body is still opaque bytes at this layer even when downstream crates impose richer typed payload contracts
-- only three message kinds exist so far: `Announcement`, `RouterAnnouncement`, and `LinkPathControl`
+- only four message kinds exist so far: `Announcement`, `RouterAnnouncement`, `LinkPathControl`, and `LinkSessionInit`
 
 ## Not Yet Implemented
 
-- broader link negotiation or session messages beyond the first typed path-control family
+- broader link negotiation or session messages beyond the first typed path-control and session-init families
 - service-session lifecycle messages
 - compatibility mapping to any upstream Lokinet message formats
 
 ## Known Risks
 
 - current service-message payload body is still opaque bytes and not yet decomposed into richer domain-specific message types
-- only the router announcement family and first link path-control family currently consume the service boundary
+- only the router announcement family plus the first link path-control and session-init families currently consume the service boundary
 - no app/runtime pipeline uses `saferunnet-service` over a real transport yet
 
 ## Test Coverage State
@@ -51,6 +52,7 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - malformed and truncated top-level framing rejection is covered
 - dedicated `RouterAnnouncement` service-kind round-trip coverage is present
 - dedicated `LinkPathControl` service-kind round-trip coverage is present
+- dedicated `LinkSessionInit` service-kind round-trip coverage is present
 
 ## Compatibility Notes
 
