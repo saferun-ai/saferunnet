@@ -10,6 +10,7 @@ const SERVICE_PAYLOAD_HEADER_LEN: usize = 6;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceMessageKind {
     Announcement,
+    RouterAnnouncement,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -230,12 +231,14 @@ fn decode_service_payload(
 fn encode_kind(kind: ServiceMessageKind) -> u8 {
     match kind {
         ServiceMessageKind::Announcement => 1,
+        ServiceMessageKind::RouterAnnouncement => 2,
     }
 }
 
 fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
     match encoded {
         1 => Ok(ServiceMessageKind::Announcement),
+        2 => Ok(ServiceMessageKind::RouterAnnouncement),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),

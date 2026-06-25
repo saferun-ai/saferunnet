@@ -19,15 +19,16 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - verified decode path as the safe default for service messages
 - explicit unverified decode path for bounded low-level handling and tests
 - signer/proof/payload consistency checks during service-message verification
+- dedicated `ServiceMessageKind::RouterAnnouncement` alongside the existing `Announcement` kind
+- the first downstream typed consumer now exists in `saferunnet-router`
 
 ## Partially Implemented Items
 
-- only one message kind (`Announcement`) exists so far
-- framing exists for authenticated service messages, but no router/link-specific message families exist yet
+- the service body is still opaque bytes at this layer even when downstream crates impose richer typed payload contracts
+- only two message kinds exist so far: `Announcement` and `RouterAnnouncement`
 
 ## Not Yet Implemented
 
-- router control messages
 - link negotiation messages
 - service-session lifecycle messages
 - compatibility mapping to any upstream Lokinet message formats
@@ -35,7 +36,8 @@ Define higher-level authenticated protocol message objects without leaking raw s
 ## Known Risks
 
 - current service-message payload body is still opaque bytes and not yet decomposed into richer domain-specific message types
-- no cross-crate runtime integration uses `saferunnet-service` yet
+- only the router announcement family currently consumes the service boundary
+- no app/runtime pipeline uses `saferunnet-service` over a real transport yet
 
 ## Test Coverage State
 
@@ -45,6 +47,7 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - tampered signed payload rejection is covered
 - mismatched proof signer rejection is covered
 - malformed and truncated top-level framing rejection is covered
+- dedicated `RouterAnnouncement` service-kind round-trip coverage is present
 
 ## Compatibility Notes
 
@@ -52,12 +55,13 @@ Define higher-level authenticated protocol message objects without leaking raw s
 
 ## Next Recommended Tasks
 
-- build router/link-facing message types on top of `AuthenticatedServiceMessage`
-- replace opaque announcement bodies with typed message payloads when real callers exist
+- add more typed router and link-facing message families on top of `AuthenticatedServiceMessage`
+- replace opaque `Announcement` bodies with typed payloads when real callers exist
 - add cross-crate integration that feeds authenticated service messages into later runtime components
 
 ## Files and Crates Involved
 
 - `crates/saferunnet-service`
+- `crates/saferunnet-router`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`
