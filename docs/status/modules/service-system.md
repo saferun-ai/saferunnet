@@ -23,7 +23,8 @@ Define higher-level authenticated protocol message objects without leaking raw s
 - dedicated `ServiceMessageKind::LinkPathControl` for typed link-facing control payloads
 - dedicated `ServiceMessageKind::LinkSessionInit` for the first typed link session-init payload family
 - dedicated `ServiceMessageKind::LinkSessionPathSwitch` for the first typed link session path-switch payload family
-- downstream typed consumers now exist in `saferunnet-router` and `saferunnet-link`
+- the router-announcement typed family now lives directly in `saferunnet-service`
+- downstream typed consumers now exist in `saferunnet-service` and `saferunnet-link`
 
 ## Partially Implemented Items
 
@@ -63,13 +64,13 @@ Define higher-level authenticated protocol message objects without leaking raw s
 ## Next Recommended Tasks
 
 - add more typed router and link-facing message families on top of `AuthenticatedServiceMessage`
+- continue evaluating whether router and other network-facing typed families belong inside this subsystem under the spec's convergence rules
 - replace opaque `Announcement` bodies with typed payloads when real callers exist
 - add cross-crate integration that feeds authenticated service messages into later runtime components
 
 ## Files and Crates Involved
 
 - `crates/saferunnet-service`
-- `crates/saferunnet-router`
 - `crates/saferunnet-link`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`

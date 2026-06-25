@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-25
 
-**Status:** Approved baseline, pending final user review of written spec
+**Status:** Approved working architecture, actively evolving through reviewed subsystem convergence
 
 ## 1. Overview
 
@@ -290,7 +290,6 @@ saferunnet/
     saferunnet-identity/
     saferunnet-link/
     saferunnet-path/
-    saferunnet-router/
     saferunnet-service/
     saferunnet-exit/
     saferunnet-dns/
@@ -342,8 +341,35 @@ The following interpretation should guide future refactors and merges:
 - `saferunnet-app` remains the runtime composition layer and should stay thin.
 - `saferunnet-config`, `saferunnet-compat-lokinet`, `saferunnet-crypto`, and `saferunnet-identity` are acceptable subsystem boundaries because they isolate distinct concerns.
 - networking concerns such as link, path, router, service-session dispatch, and later transport/session orchestration may begin as separate implementation slices, but they are expected to converge toward a cohesive network-facing subsystem boundary if they prove to be one evolving area.
-- therefore, the current multi-crate shape under `crates/saferunnet-link`, `crates/saferunnet-path`, `crates/saferunnet-router`, and `crates/saferunnet-service` should be treated as provisional architecture, not a permanent requirement.
+- therefore, the current network-facing shape under `crates/saferunnet-link`, `crates/saferunnet-path`, and `crates/saferunnet-service` should be treated as provisional architecture, not a permanent requirement.
+- first concrete convergence step completed on 2026-06-25: the router-announcement typed family was merged from `crates/saferunnet-router` into `crates/saferunnet-service` and `saferunnet-router` was removed from active workspace membership.
 - implementation plans and reviews should prefer merging such crates when that reduces coupling and clarifies ownership without creating a god object.
+
+### 7.4 Merge and Convergence Rules
+
+Future crate merges must be judged against explicit subsystem rules rather than personal preference.
+
+Merge crates when most of the following are true:
+
+1. the code changes together in the same feature slices
+2. the runtime lifecycle is the same
+3. the ownership boundary is the same team-facing subsystem
+4. one crate mostly exists only to wrap typed messages or thin forwarding APIs for another
+5. keeping them separate increases cross-crate protocol churn, duplicate tests, or review overhead without creating a clearer runtime seam
+
+Keep crates separate when most of the following are true:
+
+1. the subsystem has an independently meaningful runtime contract
+2. the subsystem is expected to change on a different cadence
+3. the subsystem isolates platform, crypto-provider, compatibility, or operator-surface concerns
+4. merging would create a broad stateful god object or blur a critical boundary
+
+Operational rule:
+
+- `apps/saferunnetd` and other binaries remain thin composition roots
+- convergence should happen inside `crates/` by forming larger cohesive subsystem crates, not by pushing subsystem internals into app entrypoints
+- every accepted merge must update this spec, the affected module status files, and the session log so the next session inherits the new structure without re-discovery
+- the current network-facing crates should continue to be evaluated for convergence until the final layout reflects cohesive subsystems rather than protocol-fragment crates
 
 ## 8. Configuration Compatibility Strategy
 

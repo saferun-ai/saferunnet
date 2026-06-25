@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the first typed router-facing protocol family on top of `saferunnet-service` without introducing transport, socket, or link-layer concerns yet.
+Track router-facing typed protocol behavior now hosted inside `saferunnet-service`, without introducing transport, socket, or link-layer concerns yet.
 
 ## Public Interfaces
 
@@ -13,7 +13,7 @@ Define the first typed router-facing protocol family on top of `saferunnet-servi
 
 ## Implemented Items
 
-- `saferunnet-router` is now an active workspace crate
+- the prior standalone `saferunnet-router` crate has been converged into `saferunnet-service`
 - deterministic project-owned router announcement payload framing
 - `RouterCapability` enum with `Relay` and `Exit`
 - `RouterAnnouncement` typed payload with `sequence` and `capabilities`
@@ -54,12 +54,12 @@ Define the first typed router-facing protocol family on top of `saferunnet-servi
 ## Next Recommended Tasks
 
 - add the next typed router family that shares this authenticated boundary
-- decide whether later router families should interact directly with `saferunnet-link` path control or remain parallel consumers of `saferunnet-service`
+- decide under the spec's convergence rules whether later router families should remain hosted in `saferunnet-service` or trigger a broader network-subsystem merge
 - connect router announcements to a higher runtime component once a consumer exists
 
 ## Files and Crates Involved
 
-- `crates/saferunnet-router`
 - `crates/saferunnet-service`
 - `crates/saferunnet-identity`
 - `crates/saferunnet-crypto`
+- `crates/saferunnet-router/README.md` (placeholder only, non-workspace)

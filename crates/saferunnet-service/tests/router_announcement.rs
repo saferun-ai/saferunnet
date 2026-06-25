@@ -3,10 +3,10 @@ use saferunnet_crypto::{
     SignedEnvelopeCodec,
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
-use saferunnet_router::{
-    AuthenticatedRouterAnnouncement, RouterAnnouncement, RouterAnnouncementError, RouterCapability,
+use saferunnet_service::{
+    AuthenticatedRouterAnnouncement, AuthenticatedServiceMessage, RouterAnnouncement,
+    RouterAnnouncementError, RouterCapability, ServiceMessageError, ServiceMessageKind,
 };
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 const ROUTER_PAYLOAD_VERSION: u8 = 1;
 
@@ -157,6 +157,45 @@ fn tampered_signed_payload_is_rejected() {
         .expect_err("verified decode should reject tampering");
     assert!(matches!(
         error,
+        RouterAnnouncementError::ServiceMessage(ServiceMessageError::Signature(
+            SignatureError::VerificationFailed
+        ))
+    ));
+}
+
+#[test]
+fn decode_verified_rejects_tampered_payload_before_unsupported_payload_version_error() {
+    let identity = make_identity("router-a");
+    let signed = AuthenticatedRouterAnnouncement::sign(
+        &identity,
+        RouterAnnouncement {
+            sequence: 15,
+            capabilities: vec![RouterCapability::Exit],
+        },
+    )
+    .expect("sign should succeed");
+
+    let proof = signed.service_message().proof().clone();
+    let mut tampered_payload = signed.service_message().envelope().payload().to_vec();
+    tampered_payload[6] = 0x7f;
+    let tampered_envelope = SignedEnvelope::from_parts(
+        tampered_payload,
+        signed.service_message().envelope().signer().clone(),
+        signed.service_message().envelope().signature().clone(),
+    );
+    let encoded = encode_service_frame(&proof, &tampered_envelope);
+
+    let unverified_error = AuthenticatedRouterAnnouncement::decode_unverified(&encoded)
+        .expect_err("unverified decode should surface the typed payload parse error");
+    assert!(matches!(
+        unverified_error,
+        RouterAnnouncementError::UnsupportedPayloadVersion(0x7f)
+    ));
+
+    let verified_error = AuthenticatedRouterAnnouncement::decode_verified(&encoded)
+        .expect_err("verified decode should fail signature verification first");
+    assert!(matches!(
+        verified_error,
         RouterAnnouncementError::ServiceMessage(ServiceMessageError::Signature(
             SignatureError::VerificationFailed
         ))

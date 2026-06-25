@@ -1,6 +1,7 @@
 use saferunnet_identity::NodeIdentity;
-use saferunnet_service::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 use thiserror::Error;
+
+use crate::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};
 
 const ROUTER_PAYLOAD_VERSION: u8 = 1;
 const ROUTER_PAYLOAD_HEADER_LEN: usize = 11;
@@ -54,9 +55,8 @@ impl AuthenticatedRouterAnnouncement {
     }
 
     pub fn decode_verified(input: &[u8]) -> Result<Self, RouterAnnouncementError> {
-        let announcement = Self::decode_unverified(input)?;
-        announcement.verify()?;
-        Ok(announcement)
+        let service_message = AuthenticatedServiceMessage::decode_verified(input)?;
+        Self::from_service_message(service_message)
     }
 
     pub fn announcement(&self) -> &RouterAnnouncement {

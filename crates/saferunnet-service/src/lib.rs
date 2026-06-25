@@ -2,6 +2,12 @@ use saferunnet_crypto::{EnvelopeCodecError, SignatureError, SignedEnvelope, Sign
 use saferunnet_identity::{IdentityProof, IdentityProofError, NodeIdentity};
 use thiserror::Error;
 
+mod router_announcement;
+
+pub use router_announcement::{
+    AuthenticatedRouterAnnouncement, RouterAnnouncement, RouterAnnouncementError, RouterCapability,
+};
+
 const SERVICE_FRAME_VERSION: u8 = 1;
 const SERVICE_FRAME_HEADER_LEN: usize = 9;
 const SERVICE_PAYLOAD_VERSION: u8 = 1;
