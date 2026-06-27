@@ -12,3 +12,8 @@ thiserror.workspace = true
 bytes.workspace = true
 rand.workspace = true
 async-trait.workspace = true
+parking_lot.workspace = true
+rustls = { version = "0.23", features = ["ring"] }
+
+[dev-dependencies]
+rcgen = "0.13"
