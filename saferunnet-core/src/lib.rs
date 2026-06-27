@@ -7,10 +7,17 @@ pub mod contact;
 pub mod dht;
 pub mod dns;
 pub mod encoding;
+pub mod lifecycle;
+pub mod link;
+pub mod link_message;
+pub mod module;
 pub mod handlers;
 pub mod net;
 pub mod path;
 pub mod router;
 pub mod rpc;
+pub mod service;
 pub mod session;
 pub mod vpn;
+
+pub use session::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag};
