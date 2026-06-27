@@ -6,7 +6,7 @@ mod session_accept;
 mod session_close;
 mod session_init;
 mod session_path_switch;
-mod session_state;
+pub mod session_state;
 mod session_types;
 
 pub use session_accept::{

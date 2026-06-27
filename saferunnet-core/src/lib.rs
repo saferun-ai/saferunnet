@@ -21,3 +21,10 @@ pub mod session;
 pub mod vpn;
 
 pub use session::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag};
+use std::sync::Arc;
+pub type RuntimeHandle = Arc<tokio::runtime::Runtime>;
+
+pub use lifecycle::LifecycleState;
+pub use module::{ModuleError, RuntimeModule};
+pub use service::{ServiceKey, ServiceRegistry};pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
+pub use session::session_state::SessionState;
