@@ -176,3 +176,10 @@ mod tests {
         assert_eq!(decoded, peer);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Oxen Chain RPC client (service node discovery)
+// ---------------------------------------------------------------------------
+
+pub mod oxen_client;
+pub use oxen_client::{GetServiceNodesResponse, OxenRpcClient, OxenRpcError, ServiceNodeEntry};
