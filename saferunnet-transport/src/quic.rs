@@ -296,6 +296,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires TLS certificates and network; enable for integration testing"]
     async fn test_transport_connect_and_datagram() {
         ensure_crypto_provider();
 

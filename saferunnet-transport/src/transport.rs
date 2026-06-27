@@ -1,5 +1,5 @@
-use std::net::SocketAddr;
 pub use crate::traits::TransportError;
+use std::net::SocketAddr;
 
 /// A single datagram received from the network.
 #[derive(Debug, Clone)]

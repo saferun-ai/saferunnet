@@ -78,8 +78,7 @@ impl OxenRpcClient {
         {
             let hash = self.last_hash_update.lock();
             if !hash.is_empty() {
-                request["params"]["poll_block_hash"] =
-                    serde_json::Value::String(hash.clone());
+                request["params"]["poll_block_hash"] = serde_json::Value::String(hash.clone());
             }
         }
 
