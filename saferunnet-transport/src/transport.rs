@@ -1,17 +1,5 @@
 use std::net::SocketAddr;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum TransportError {
-    #[error("bind failed: {0}")]
-    BindFailed(String),
-    #[error("send failed: {0}")]
-    SendFailed(String),
-    #[error("recv failed: {0}")]
-    RecvFailed(String),
-    #[error("connection closed")]
-    Closed,
-}
+pub use crate::traits::TransportError;
 
 /// A single datagram received from the network.
 #[derive(Debug, Clone)]

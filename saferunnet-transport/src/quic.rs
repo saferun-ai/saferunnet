@@ -1,10 +1,10 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
+use crate::traits::*;
 use async_trait::async_trait;
 use bytes::Bytes;
-use quinn::{Endpoint, Connection as QuinnConn, SendStream, RecvStream};
+use quinn::{Connection as QuinnConn, Endpoint, RecvStream, SendStream};
+use std::net::SocketAddr;
+use std::sync::Arc;
 use tokio::sync::Mutex;
-use crate::traits::*;
 
 /// QUIC-based transport layer using quinn.
 /// Lokinet C++ equivalent: oxen-libquic
@@ -194,7 +194,9 @@ impl ControlStream for QuinnControlStream {
     }
 
     async fn finish(&mut self) -> TransportResult<()> {
-        self.send.finish().map_err(|e| TransportError::SendFailed(e.to_string()))?;
+        self.send
+            .finish()
+            .map_err(|e| TransportError::SendFailed(e.to_string()))?;
         Ok(())
     }
 }
@@ -270,9 +272,7 @@ impl rustls::client::danger::ServerCertVerifier for SkipServerVerification {
     }
 
     fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        self.0
-            .signature_verification_algorithms
-            .supported_schemes()
+        self.0.signature_verification_algorithms.supported_schemes()
     }
 }
 
@@ -285,7 +285,10 @@ mod tests {
         let _ = rustls::crypto::ring::default_provider().install_default();
     }
 
-    fn generate_self_signed_cert() -> (rustls::pki_types::CertificateDer<'static>, rustls::pki_types::PrivateKeyDer<'static>) {
+    fn generate_self_signed_cert() -> (
+        rustls::pki_types::CertificateDer<'static>,
+        rustls::pki_types::PrivateKeyDer<'static>,
+    ) {
         let cert = rcgen::generate_simple_self_signed(vec!["localhost".to_string()]).unwrap();
         let cert_der = cert.cert.der().clone();
         let key_der = rustls::pki_types::PrivateKeyDer::Pkcs8(cert.key_pair.serialize_der().into());
@@ -298,9 +301,11 @@ mod tests {
 
         let (cert, key) = generate_self_signed_cert();
 
-        let mut server_config = quinn::ServerConfig::with_single_cert(vec![cert], key.into()).unwrap();
+        let mut server_config =
+            quinn::ServerConfig::with_single_cert(vec![cert], key.into()).unwrap();
         let mut transport_config = quinn::TransportConfig::default();
-        transport_config.max_idle_timeout(Some(std::time::Duration::from_secs(5).try_into().unwrap()));
+        transport_config
+            .max_idle_timeout(Some(std::time::Duration::from_secs(5).try_into().unwrap()));
         server_config.transport_config(Arc::new(transport_config));
 
         let server = QuinnTransport::new_server(
@@ -310,10 +315,9 @@ mod tests {
         .unwrap();
         let server_addr = server.local_addr();
 
-        let client = QuinnTransport::new_client(
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
-        )
-        .unwrap();
+        let client =
+            QuinnTransport::new_client(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))
+                .unwrap();
 
         let listener = server.listen(server_addr).await.unwrap();
         let client_conn = client.connect(server_addr).await.unwrap();

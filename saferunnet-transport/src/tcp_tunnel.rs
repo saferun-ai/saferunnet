@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::io::AsyncReadExt;
-use bytes::Bytes;
 use crate::traits::{Connection, TransportResult};
+use bytes::Bytes;
+use std::sync::Arc;
+use tokio::io::AsyncReadExt;
+use tokio::net::TcpListener;
 
 /// TCP-over-QUIC tunnel for liblokinet-style TCP proxying.
 /// Lokinet C++ equivalent: llarp/ev/tcp.hpp QUICTunnel
@@ -60,9 +60,7 @@ impl QuicTunnel {
             if n == 0 {
                 break;
             }
-            quic_stream
-                .send(Bytes::from(buf[..n].to_vec()))
-                .await?;
+            quic_stream.send(Bytes::from(buf[..n].to_vec())).await?;
         }
         quic_stream.finish().await?;
 

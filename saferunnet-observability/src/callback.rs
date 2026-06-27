@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use parking_lot::Mutex;
-use tracing::Subscriber;
-use tracing_subscriber::Layer;
-use tracing_subscriber::layer::Context;
 use std::fmt::Write;
+use std::sync::Arc;
+use tracing::Subscriber;
+use tracing_subscriber::layer::Context;
+use tracing_subscriber::Layer;
 
 /// Callback function type for log consumption.
 /// Lokinet C++ equivalent: lokinet_logger_func
@@ -26,7 +26,10 @@ impl CallbackLayer {
         }
     }
 
-    pub fn with_ringbuf(callback: LogCallback, ringbuf: Arc<super::ringbuf::LogRingBuffer>) -> Self {
+    pub fn with_ringbuf(
+        callback: LogCallback,
+        ringbuf: Arc<super::ringbuf::LogRingBuffer>,
+    ) -> Self {
         Self {
             callback,
             ringbuf: Some(ringbuf),
@@ -36,11 +39,7 @@ impl CallbackLayer {
 }
 
 impl<S: Subscriber> Layer<S> for CallbackLayer {
-    fn on_event(
-        &self,
-        event: &tracing::Event<'_>,
-        _ctx: Context<'_, S>,
-    ) {
+    fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
         let mut target = self.target.lock();
         target.clear();
 

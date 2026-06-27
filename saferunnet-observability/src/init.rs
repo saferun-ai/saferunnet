@@ -1,14 +1,14 @@
+use crate::callback::{CallbackLayer, LogCallback};
+use crate::config::LogType;
+use crate::config::LoggingConfig;
+use crate::ringbuf::LogRingBuffer;
+use std::fs::File;
+use std::io;
 use std::sync::Arc;
+use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
-use tracing_subscriber::fmt;
-use std::fs::File;
-use std::io;
-use crate::config::LoggingConfig;
-use crate::config::LogType;
-use crate::callback::{CallbackLayer, LogCallback};
-use crate::ringbuf::LogRingBuffer;
 
 /// Global ring buffer for RPC log subscription.
 /// Lokinet C++ equivalent: llarp::logRingBuffer
@@ -60,8 +60,8 @@ pub fn init_logging(config: &LoggingConfig) {
         }
         LogType::System => {
             // System logger: file fallback on non-Linux (Windows/macOS)
-            let file = File::create("saferunnet-system.log")
-                .expect("failed to create system log file");
+            let file =
+                File::create("saferunnet-system.log").expect("failed to create system log file");
             tracing_subscriber::registry()
                 .with(env_filter)
                 .with(fmt::layer().with_writer(file).with_ansi(false))
@@ -78,21 +78,15 @@ pub fn init_logging(config: &LoggingConfig) {
 
 /// Initialize with a callback for external log consumption.
 /// Lokinet C++ equivalent: adding CallbackSink via log::add_sink()
-pub fn init_logging_with_callback(
-    config: &LoggingConfig,
-    callback: LogCallback,
-) {
+pub fn init_logging_with_callback(config: &LoggingConfig, callback: LogCallback) {
     let log_type = config.log_type.as_ref().unwrap_or(&LogType::Print);
     let file_path = config.file.as_deref();
 
-    let ringbuf = RING_BUFFER
-        .get()
-        .cloned()
-        .unwrap_or_else(|| {
-            let rb = Arc::new(LogRingBuffer::new(1000));
-            let _ = RING_BUFFER.set(rb.clone());
-            rb
-        });
+    let ringbuf = RING_BUFFER.get().cloned().unwrap_or_else(|| {
+        let rb = Arc::new(LogRingBuffer::new(1000));
+        let _ = RING_BUFFER.set(rb.clone());
+        rb
+    });
 
     let callback_layer = CallbackLayer::with_ringbuf(callback, ringbuf);
     let env_filter = build_env_filter(&config.levels);
@@ -115,8 +109,8 @@ pub fn init_logging_with_callback(
                 .init();
         }
         LogType::System => {
-            let file = File::create("saferunnet-system.log")
-                .expect("failed to create system log file");
+            let file =
+                File::create("saferunnet-system.log").expect("failed to create system log file");
             tracing_subscriber::registry()
                 .with(env_filter)
                 .with(fmt::layer().with_writer(file).with_ansi(false))

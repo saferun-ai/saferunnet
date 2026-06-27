@@ -1,9 +1,9 @@
+use crate::traits::*;
+use bytes::Bytes;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use parking_lot::RwLock;
-use bytes::Bytes;
-use crate::traits::*;
 
 /// Manages QUIC connections to remote SaferunNet routers.
 /// Lokinet C++ equivalent: llarp/link/link_manager.hpp LinkManager
@@ -31,11 +31,7 @@ impl LinkManager {
     }
 
     /// Send an unreliable datagram message
-    pub async fn send_data_message(
-        &self,
-        addr: &SocketAddr,
-        data: Bytes,
-    ) -> TransportResult<()> {
+    pub async fn send_data_message(&self, addr: &SocketAddr, data: Bytes) -> TransportResult<()> {
         let guard = self.connections.read();
         let conn = guard
             .get(addr)
