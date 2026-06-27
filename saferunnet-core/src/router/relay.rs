@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::vpn::ExitPolicy;
 use crate::link::{FrameKind, LlarpFrame};
 use crate::path::transit_hop::AuthenticatedTransitHopMessage;
+use crate::vpn::ExitPolicy;
 use thiserror::Error;
 
-use crate::router::onion::{ONION_LAYER_SIZE, OnionError, OnionRouter};
+use crate::router::onion::{OnionError, OnionRouter, ONION_LAYER_SIZE};
 
 /// Handles relay (transit) logic: receives onion-encrypted frames,
 /// peels one layer, and prepares the inner frame for forwarding.

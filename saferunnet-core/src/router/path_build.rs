@@ -1,8 +1,8 @@
-use saferunnet_crypto::PublicKey;
 use crate::path::{PathDescriptor, PathState};
+use saferunnet_crypto::PublicKey;
 use thiserror::Error;
 
-use crate::router::onion::{ONION_LAYER_SIZE, OnionError, OnionRouter};
+use crate::router::onion::{OnionError, OnionRouter, ONION_LAYER_SIZE};
 
 /// Specification for a single hop in a path being built.
 #[derive(Debug, Clone)]

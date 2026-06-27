@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_core::{AuthenticatedLinkMessage, LinkMessageError, SessionState};
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 
 pub const LINK_MESSAGE_DISPATCHER_SERVICE_KEY: &str = "saferunnet.link.dispatcher";
 pub const LINK_SESSION_STATE_SERVICE_KEY: &str = "saferunnet.link.session-state";

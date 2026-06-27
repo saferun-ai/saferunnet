@@ -1,14 +1,14 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use saferunnet_crypto::PublicKey;
 use crate::dns::resolver::{DhtClient, DhtIntroResult};
+use saferunnet_crypto::PublicKey;
 use saferunnet_transport::LinkTransport;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
 use crate::dht::lookup::IterativeLookup;
-use crate::dht::routing::{K_BUCKET_SIZE, RouterEntry, RoutingTable};
+use crate::dht::routing::{RouterEntry, RoutingTable, K_BUCKET_SIZE};
 
 /// A network-aware DHT node that uses a `LinkTransport` for peer communication.
 ///

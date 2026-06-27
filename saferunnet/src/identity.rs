@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
+use saferunnet_core::contact::{FileIdentityRepository, IdentitySpec, NodeIdentity};
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
-use saferunnet_core::contact::{FileIdentityRepository, IdentitySpec, NodeIdentity};
 
 pub const NODE_IDENTITY_SERVICE_KEY: &str = "saferunnet.identity.node";
 

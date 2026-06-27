@@ -1,5 +1,5 @@
-use saferunnet_crypto::PublicKey;
 use crate::contact::NodeIdentity;
+use saferunnet_crypto::PublicKey;
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

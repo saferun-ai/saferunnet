@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
-use saferunnet_crypto::PublicKey;
 use saferunnet_core::path::{
     build::RandomPathBuilder, health::PingHealthChecker, select::FirstAvailableSelector,
 };
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
+use saferunnet_crypto::PublicKey;
 
 pub const PATH_SELECTOR_SERVICE_KEY: &str = "saferunnet.path.selector";
 pub const PATH_BUILDER_SERVICE_KEY: &str = "saferunnet.path.builder";

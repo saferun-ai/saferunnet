@@ -7,11 +7,11 @@ pub mod contact;
 pub mod dht;
 pub mod dns;
 pub mod encoding;
+pub mod handlers;
 pub mod lifecycle;
 pub mod link;
 pub mod link_message;
 pub mod module;
-pub mod handlers;
 pub mod net;
 pub mod path;
 pub mod router;
@@ -20,11 +20,14 @@ pub mod service;
 pub mod session;
 pub mod vpn;
 
-pub use session::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag};
+pub use session::{
+    AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag,
+};
 use std::sync::Arc;
 pub type RuntimeHandle = Arc<tokio::runtime::Runtime>;
 
 pub use lifecycle::LifecycleState;
+pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
 pub use module::{ModuleError, RuntimeModule};
-pub use service::{ServiceKey, ServiceRegistry};pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
+pub use service::{ServiceKey, ServiceRegistry};
 pub use session::session_state::SessionState;

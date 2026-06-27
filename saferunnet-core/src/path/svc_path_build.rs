@@ -1,5 +1,5 @@
-use saferunnet_crypto::{KeyAlgorithm, PublicKey};
 use crate::contact::NodeIdentity;
+use saferunnet_crypto::{KeyAlgorithm, PublicKey};
 use thiserror::Error;
 
 use crate::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind};

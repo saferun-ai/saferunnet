@@ -7,7 +7,7 @@ pub use model::{LoggingConfig, NetworkConfig, NormalizedConfig, RouterConfig};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use crate::config::compat_lokinet::{ParseError, RawLokinetConfig, parse};
+use crate::config::compat_lokinet::{parse, ParseError, RawLokinetConfig};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

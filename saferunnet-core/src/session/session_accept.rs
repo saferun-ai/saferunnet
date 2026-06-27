@@ -1,7 +1,9 @@
 use crate::contact::NodeIdentity;
 use thiserror::Error;
 
-use crate::session::{AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionTag};
+use crate::session::{
+    AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionTag,
+};
 
 const SESSION_ACCEPT_PAYLOAD_VERSION: u8 = 1;
 const SESSION_ACCEPT_PAYLOAD_LEN: usize = 1 + 4;

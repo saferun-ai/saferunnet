@@ -1,2 +1,1 @@
-
-pub use super::parser::{ParseError, RawLokinetConfig, parse};
+pub use super::parser::{parse, ParseError, RawLokinetConfig};

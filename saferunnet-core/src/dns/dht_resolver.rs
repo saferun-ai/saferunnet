@@ -1,4 +1,4 @@
-use crate::dns::resolver::{DhtClient, DnsError, LokiResolver, is_loki_name};
+use crate::dns::resolver::{is_loki_name, DhtClient, DnsError, LokiResolver};
 use saferunnet_crypto::PublicKey;
 use std::collections::HashMap;
 use std::sync::Mutex;

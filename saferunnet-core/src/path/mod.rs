@@ -1,7 +1,7 @@
 pub mod build;
 pub mod health;
-pub mod select;
 pub mod path_control;
+pub mod select;
 pub mod svc_path_build;
 pub mod transit_hop;
 

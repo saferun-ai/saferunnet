@@ -270,13 +270,13 @@ fn new_secure_file(path: &Path) -> Result<std::fs::File, IdentityRepositoryError
     use std::ffi::OsStr;
     use std::mem::size_of;
     use std::os::windows::io::FromRawHandle;
-    use windows_sys::Win32::Foundation::{INVALID_HANDLE_VALUE, LocalFree};
+    use windows_sys::Win32::Foundation::{LocalFree, INVALID_HANDLE_VALUE};
     use windows_sys::Win32::Security::Authorization::{
         ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
     };
     use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
     use windows_sys::Win32::Storage::FileSystem::{
-        CREATE_NEW, CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_FLAG_SEQUENTIAL_SCAN,
+        CreateFileW, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, FILE_FLAG_SEQUENTIAL_SCAN,
         FILE_FLAG_WRITE_THROUGH, FILE_GENERIC_WRITE,
     };
 
@@ -343,7 +343,7 @@ fn new_secure_file(path: &Path) -> Result<std::fs::File, IdentityRepositoryError
 
 #[cfg(windows)]
 fn replace_file(path: &Path, temp_path: &Path) -> Result<(), IdentityRepositoryError> {
-    use windows_sys::Win32::Storage::FileSystem::{REPLACEFILE_WRITE_THROUGH, ReplaceFileW};
+    use windows_sys::Win32::Storage::FileSystem::{ReplaceFileW, REPLACEFILE_WRITE_THROUGH};
 
     let path_wide = wide_null(path.as_os_str());
     let temp_wide = wide_null(temp_path.as_os_str());

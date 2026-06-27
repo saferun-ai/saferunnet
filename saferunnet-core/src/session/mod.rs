@@ -1,5 +1,5 @@
-use saferunnet_crypto::{EnvelopeCodecError, SignatureError, SignedEnvelope, SignedEnvelopeCodec};
 use crate::contact::{IdentityProof, IdentityProofError, NodeIdentity};
+use saferunnet_crypto::{EnvelopeCodecError, SignatureError, SignedEnvelope, SignedEnvelopeCodec};
 use thiserror::Error;
 
 mod session_accept;
@@ -176,7 +176,10 @@ pub enum ServiceMessageError {
     },
 }
 
-fn encode_service_payload(kind: ServiceMessageKind, body: &[u8]) -> Result<Vec<u8>, ServiceMessageError> {
+fn encode_service_payload(
+    kind: ServiceMessageKind,
+    body: &[u8],
+) -> Result<Vec<u8>, ServiceMessageError> {
     let body_len =
         u32::try_from(body.len()).map_err(|_| ServiceMessageError::PayloadLengthOverflow {
             field: "body",

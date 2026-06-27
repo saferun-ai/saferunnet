@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
+use saferunnet_core::dns::resolver::{DnsError, LokiResolver};
 use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::PublicKey;
-use saferunnet_core::dns::resolver::{DnsError, LokiResolver};
 
 pub const DNS_RESOLVER_SERVICE_KEY: &str = "saferunnet.dns.resolver";
 

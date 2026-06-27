@@ -1,6 +1,9 @@
 use thiserror::Error;
 
-use crate::session::{SessionAcceptMessage, SessionCloseMessage, SessionInitMessage, SessionPathSwitchMessage, SessionTag};
+use crate::session::{
+    SessionAcceptMessage, SessionCloseMessage, SessionInitMessage, SessionPathSwitchMessage,
+    SessionTag,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveSession {
