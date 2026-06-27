@@ -27,9 +27,13 @@
 - `windows-sys` is approved only inside `saferunnet-identity` for Windows-specific ACL hardening and atomic replace operations; no cross-platform runtime crate should depend on it casually.
 - The rest of the workspace must continue programming against `saferunnet-crypto` contracts such as `KeyGenerator`, `PublicKey`, and `SecretKey`; no other crate should depend directly on `ed25519-dalek` unless there is an explicit architecture decision.
 
-## Deferred Decisions
+## Approved Extension Decisions
 
-- async runtime
+### Async Runtime
+
+- `tokio` is approved as the async runtime with `rt-multi-thread`, `sync`, `time`, and `macros` features. Saferunnet-core exposes `RuntimeHandle` (type alias for `Arc<Runtime>`) so consuming crates need not depend on tokio directly.
+
+## Deferred Decisions
 - CLI framework
 - serialization framework
 - signature contract surface

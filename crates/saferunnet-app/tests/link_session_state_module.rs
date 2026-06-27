@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use saferunnet_app::{
-    AppKernel, LinkMessageDispatcher, LinkMessageModule, LinkSessionState, LinkSessionStateModule,
-    LINK_MESSAGE_DISPATCHER_SERVICE_KEY, LINK_SESSION_STATE_SERVICE_KEY,
+    AppKernel, LINK_MESSAGE_DISPATCHER_SERVICE_KEY, LINK_SESSION_STATE_SERVICE_KEY,
+    LinkMessageDispatcher, LinkMessageModule, LinkSessionState, LinkSessionStateModule,
 };
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{
@@ -94,11 +94,12 @@ impl RuntimeModule for LinkSessionLifecycleModule {
         "link-session-lifecycle"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &[
-            LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
-            LINK_SESSION_STATE_SERVICE_KEY,
-        ]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[
+            ServiceKey::of::<LinkMessageDispatcher>(LINK_MESSAGE_DISPATCHER_SERVICE_KEY),
+            ServiceKey::of::<LinkSessionState>(LINK_SESSION_STATE_SERVICE_KEY),
+        ];
+        KEYS
     }
 
     fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {

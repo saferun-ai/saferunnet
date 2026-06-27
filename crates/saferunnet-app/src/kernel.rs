@@ -1,9 +1,11 @@
-use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{LifecycleState, ModuleError, RuntimeHandle, RuntimeModule, ServiceRegistry};
+use std::sync::Arc;
 
 pub struct AppKernel {
     state: LifecycleState,
     modules: Vec<Box<dyn RuntimeModule>>,
     services: ServiceRegistry,
+    runtime: RuntimeHandle,
 }
 
 impl AppKernel {
@@ -12,7 +14,21 @@ impl AppKernel {
             state: LifecycleState::Created,
             modules: Vec::new(),
             services: ServiceRegistry::new(),
+            runtime: Arc::new(tokio::runtime::Runtime::new().expect("create tokio runtime")),
         }
+    }
+
+    pub fn from_runtime(runtime: RuntimeHandle) -> Self {
+        Self {
+            state: LifecycleState::Created,
+            modules: Vec::new(),
+            services: ServiceRegistry::new(),
+            runtime,
+        }
+    }
+
+    pub fn runtime(&self) -> &RuntimeHandle {
+        &self.runtime
     }
 
     pub fn register(&mut self, module: Box<dyn RuntimeModule>) {
@@ -40,25 +56,65 @@ impl AppKernel {
         }
 
         self.state = LifecycleState::Starting;
-        for module in &mut self.modules {
-            module.register_services(&mut self.services)?;
+
+        // Phase 1: register services with rollback
+        let count = self.modules.len();
+        for i in 0..count {
+            if let Err(err) = self.modules[i].register_services(&mut self.services) {
+                // Rollback: stop previously registered modules
+                for j in (0..i).rev() {
+                    if let Err(stop_err) = self.modules[j].stop() {
+                        tracing::warn!(
+                            "rollback stop failed for module {}: {stop_err}",
+                            self.modules[j].name()
+                        );
+                    }
+                }
+                self.services.clear_registrations();
+                self.state = LifecycleState::Stopped;
+                let name = self.modules[i].name();
+                return Err(ModuleError::ServiceRegistration {
+                    module: name,
+                    reason: err.to_string(),
+                });
+            }
         }
-        for (started, module) in self.modules.iter_mut().enumerate() {
-            for required in module.required_service_keys() {
-                if !self.services.contains_key(required) {
+
+        // Phase 2: check deps, wire, start
+        for i in 0..count {
+            // Check required services
+            let required_keys: Vec<_> = self.modules[i].required_service_keys().to_vec();
+            for required in &required_keys {
+                if !self.services.contains_key_typed(required) {
+                    self.rollback_started(i)?;
                     self.state = LifecycleState::Stopped;
+                    let name = self.modules[i].name();
                     return Err(ModuleError::Lifecycle(format!(
                         "module {} requires missing service {}",
-                        module.name(),
-                        required
+                        name,
+                        required.name()
                     )));
                 }
             }
-            module.wire(&self.services)?;
-            if let Err(error) = module.start() {
-                self.rollback_started_modules(started)?;
+            // Wire
+            if let Err(err) = self.modules[i].wire(&self.services) {
+                self.rollback_started(i)?;
                 self.state = LifecycleState::Stopped;
-                return Err(error);
+                let name = self.modules[i].name();
+                return Err(ModuleError::Wiring {
+                    module: name,
+                    reason: err.to_string(),
+                });
+            }
+            // Start
+            if let Err(err) = self.modules[i].start() {
+                self.rollback_started(i)?;
+                self.state = LifecycleState::Stopped;
+                let name = self.modules[i].name();
+                return Err(ModuleError::Startup {
+                    module: name,
+                    reason: err.to_string(),
+                });
             }
         }
         self.state = LifecycleState::Running;
@@ -74,16 +130,24 @@ impl AppKernel {
         }
 
         self.state = LifecycleState::Stopping;
-        for module in self.modules.iter_mut().rev() {
-            module.stop()?;
+        let count = self.modules.len();
+        for i in (0..count).rev() {
+            if let Err(err) = self.modules[i].stop() {
+                self.state = LifecycleState::Stopped;
+                let name = self.modules[i].name();
+                return Err(ModuleError::Shutdown {
+                    module: name,
+                    reason: err.to_string(),
+                });
+            }
         }
         self.state = LifecycleState::Stopped;
         Ok(())
     }
 
-    fn rollback_started_modules(&mut self, started: usize) -> Result<(), ModuleError> {
-        for module in self.modules[..started].iter_mut().rev() {
-            module.stop()?;
+    fn rollback_started(&mut self, count: usize) -> Result<(), ModuleError> {
+        for i in (0..count).rev() {
+            self.modules[i].stop()?;
         }
         Ok(())
     }

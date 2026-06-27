@@ -7,7 +7,16 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
+tokio.workspace = true
 saferunnet-core = { path = "../saferunnet-core" }
 saferunnet-crypto = { path = "../saferunnet-crypto" }
+saferunnet-dns = { path = "../saferunnet-dns" }
 saferunnet-identity = { path = "../saferunnet-identity" }
+saferunnet-path = { path = "../saferunnet-path" }
 saferunnet-service = { path = "../saferunnet-service" }
+thiserror.workspace = true
+tracing.workspace = true
+rand_core = "0.6"
+
+[dev-dependencies]
+saferunnet-testing = { path = "../saferunnet-testing" }

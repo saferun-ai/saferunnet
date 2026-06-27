@@ -95,3 +95,16 @@ fn bootstrap_defaults_keyfile_under_data_dir_and_creates_parent_dirs() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn check_services_starts_and_stops_all_modules() {
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+        .arg("--check-services")
+        .output()
+        .expect("run saferunnet --check-services");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("services ok"));
+    assert!(stdout.contains("shutdown ok"));
+}

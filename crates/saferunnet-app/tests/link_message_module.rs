@@ -1,7 +1,7 @@
 use saferunnet_app::{
     AppKernel, LINK_MESSAGE_DISPATCHER_SERVICE_KEY, LinkMessageDispatcher, LinkMessageModule,
 };
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
 use saferunnet_identity::NodeIdentity;
 use saferunnet_service::{
@@ -87,8 +87,11 @@ impl RuntimeModule for DispatcherWiringProbe {
         "dispatcher-wiring-probe"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &[LINK_MESSAGE_DISPATCHER_SERVICE_KEY]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<LinkMessageDispatcher>(
+            LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
+        )];
+        KEYS
     }
 
     fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {
@@ -131,8 +134,11 @@ impl RuntimeModule for LinkConsumerModule {
         "link-consumer"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &[LINK_MESSAGE_DISPATCHER_SERVICE_KEY]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<LinkMessageDispatcher>(
+            LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
+        )];
+        KEYS
     }
 
     fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {
@@ -232,8 +238,11 @@ impl RuntimeModule for DispatcherContractModule {
         "dispatcher-contract"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &[LINK_MESSAGE_DISPATCHER_SERVICE_KEY]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<LinkMessageDispatcher>(
+            LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
+        )];
+        KEYS
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {

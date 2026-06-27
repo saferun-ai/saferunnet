@@ -1,11 +1,16 @@
 use thiserror::Error;
 
+use crate::dht_intro::DhtIntroError;
 use crate::{
-    AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
-    AuthenticatedSessionAcceptMessage, AuthenticatedSessionCloseMessage,
-    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, PathControlError,
+    AuthenticatedDhtIntroMessage, AuthenticatedPathBuildMessage, AuthenticatedPathBuildResponse,
+    AuthenticatedServiceMessage, PathBuildError,
+};
+use crate::{
+    AuthenticatedPathControlMessage, AuthenticatedSessionAcceptMessage,
+    AuthenticatedSessionCloseMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedSessionPathSwitchMessage, AuthenticatedTransitHopMessage, PathControlError,
     ServiceMessageError, ServiceMessageKind, SessionAcceptError, SessionCloseError,
-    SessionInitError, SessionPathSwitchError,
+    SessionInitError, SessionPathSwitchError, TransitHopError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,6 +20,10 @@ pub enum AuthenticatedLinkMessage {
     SessionAccept(AuthenticatedSessionAcceptMessage),
     SessionPathSwitch(AuthenticatedSessionPathSwitchMessage),
     SessionClose(AuthenticatedSessionCloseMessage),
+    DhtIntro(AuthenticatedDhtIntroMessage),
+    PathBuild(AuthenticatedPathBuildMessage),
+    PathBuildResponse(AuthenticatedPathBuildResponse),
+    TransitHop(AuthenticatedTransitHopMessage),
 }
 
 impl AuthenticatedLinkMessage {
@@ -34,11 +43,15 @@ impl AuthenticatedLinkMessage {
 
     pub fn service_message(&self) -> &AuthenticatedServiceMessage {
         match self {
-            Self::PathControl(message) => message.service_message(),
-            Self::SessionInit(message) => message.service_message(),
-            Self::SessionAccept(message) => message.service_message(),
-            Self::SessionPathSwitch(message) => message.service_message(),
-            Self::SessionClose(message) => message.service_message(),
+            Self::PathControl(m) => m.service_message(),
+            Self::SessionInit(m) => m.service_message(),
+            Self::SessionAccept(m) => m.service_message(),
+            Self::SessionPathSwitch(m) => m.service_message(),
+            Self::SessionClose(m) => m.service_message(),
+            Self::DhtIntro(m) => m.service_message(),
+            Self::PathBuild(m) => m.service_message(),
+            Self::PathBuildResponse(m) => m.service_message(),
+            Self::TransitHop(m) => m.service_message(),
         }
     }
 
@@ -71,6 +84,22 @@ impl AuthenticatedLinkMessage {
                     service_message,
                 )?,
             )),
+            ServiceMessageKind::DhtIntro => Ok(Self::DhtIntro(
+                AuthenticatedDhtIntroMessage::from_authenticated_service_message(service_message)?,
+            )),
+            ServiceMessageKind::LinkPathBuild => Ok(Self::PathBuild(
+                AuthenticatedPathBuildMessage::from_authenticated_service_message(service_message)?,
+            )),
+            ServiceMessageKind::LinkPathBuildResponse => Ok(Self::PathBuildResponse(
+                AuthenticatedPathBuildResponse::from_authenticated_service_message(
+                    service_message,
+                )?,
+            )),
+            ServiceMessageKind::LinkTransitHop => Ok(Self::TransitHop(
+                AuthenticatedTransitHopMessage::from_authenticated_service_message(
+                    service_message,
+                )?,
+            )),
             unsupported => Err(LinkMessageError::UnsupportedServiceKind(unsupported)),
         }
     }
@@ -92,4 +121,10 @@ pub enum LinkMessageError {
     SessionPathSwitch(#[from] SessionPathSwitchError),
     #[error(transparent)]
     SessionClose(#[from] SessionCloseError),
+    #[error(transparent)]
+    DhtIntro(#[from] DhtIntroError),
+    #[error(transparent)]
+    PathBuild(#[from] PathBuildError),
+    #[error(transparent)]
+    TransitHop(#[from] TransitHopError),
 }

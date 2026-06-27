@@ -4,12 +4,15 @@ use saferunnet_crypto::{
 };
 use saferunnet_identity::{IdentityProof, NodeIdentity};
 use saferunnet_service::{
-    AuthenticatedLinkMessage, AuthenticatedPathControlMessage, AuthenticatedServiceMessage,
-    AuthenticatedSessionAcceptMessage, AuthenticatedSessionCloseMessage,
-    AuthenticatedSessionInitMessage, AuthenticatedSessionPathSwitchMessage, LinkMessageError,
-    PathControlMessage, PathPing, ServiceMessageError, ServiceMessageKind, SessionAcceptMessage,
+    AddressFamily, AuthenticatedDhtIntroMessage, AuthenticatedLinkMessage,
+    AuthenticatedPathBuildMessage, AuthenticatedPathBuildResponse, AuthenticatedPathControlMessage,
+    AuthenticatedServiceMessage, AuthenticatedSessionAcceptMessage,
+    AuthenticatedSessionCloseMessage, AuthenticatedSessionInitMessage,
+    AuthenticatedSessionPathSwitchMessage, AuthenticatedTransitHopMessage, DhtIntroEntry,
+    DhtIntroMessage, LinkMessageError, PathBuildMessage, PathBuildResponse, PathControlMessage,
+    PathHop, PathPing, ServiceMessageError, ServiceMessageKind, SessionAcceptMessage,
     SessionCloseError, SessionCloseMessage, SessionHopId, SessionInitError, SessionInitMessage,
-    SessionPathSwitchError, SessionPathSwitchMessage, SessionTag,
+    SessionPathSwitchError, SessionPathSwitchMessage, SessionTag, TransitHopMessage,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -291,4 +294,110 @@ fn unverified_decode_surfaces_session_close_typed_parse_error() {
         error,
         LinkMessageError::SessionClose(SessionCloseError::UnsupportedPayloadVersion(0x7f))
     ));
+}
+
+#[test]
+fn decode_dispatch_round_trip_dht_intro() {
+    let identity = make_identity("alice");
+    let entry = DhtIntroEntry {
+        public_key: identity.public_key.clone(),
+        family: AddressFamily::Ipv4,
+        port: 8080,
+    };
+    let encoded = AuthenticatedDhtIntroMessage::sign(
+        &identity,
+        DhtIntroMessage {
+            entries: vec![entry],
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::DhtIntro(inner) => {
+            assert_eq!(inner.payload().entries.len(), 1);
+            inner.verify().expect("decoded dht-intro should verify");
+        }
+        _ => panic!("expected dht-intro variant"),
+    }
+}
+
+#[test]
+fn decode_dispatch_round_trip_path_build() {
+    let identity = make_identity("alice");
+    let hop = PathHop {
+        router_id: identity.public_key.clone(),
+    };
+    let encoded = AuthenticatedPathBuildMessage::sign(
+        &identity,
+        PathBuildMessage {
+            path_id: 99,
+            hops: vec![hop],
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::PathBuild(inner) => {
+            assert_eq!(inner.message().path_id, 99);
+            assert_eq!(inner.message().hops.len(), 1);
+            inner.verify().expect("decoded path-build should verify");
+        }
+        _ => panic!("expected path-build variant"),
+    }
+}
+
+#[test]
+fn decode_dispatch_round_trip_path_build_response() {
+    let identity = make_identity("alice");
+    let encoded = AuthenticatedPathBuildResponse::sign(
+        &identity,
+        PathBuildResponse {
+            path_id: 42,
+            accepted: true,
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::PathBuildResponse(inner) => {
+            assert_eq!(inner.message().path_id, 42);
+            assert!(inner.message().accepted);
+            inner
+                .verify()
+                .expect("decoded path-build-response should verify");
+        }
+        _ => panic!("expected path-build-response variant"),
+    }
+}
+
+#[test]
+fn decode_dispatch_round_trip_transit_hop() {
+    let identity = make_identity("alice");
+    let encoded = AuthenticatedTransitHopMessage::sign(
+        &identity,
+        TransitHopMessage {
+            path_id: 7,
+            hop_index: 3,
+            encrypted_payload: vec![0xaa, 0xbb, 0xcc],
+        },
+    )
+    .expect("sign should succeed")
+    .encode()
+    .expect("encode should succeed");
+    let decoded = AuthenticatedLinkMessage::decode(&encoded).expect("decode should succeed");
+    match decoded {
+        AuthenticatedLinkMessage::TransitHop(inner) => {
+            assert_eq!(inner.message().path_id, 7);
+            assert_eq!(inner.message().hop_index, 3);
+            assert_eq!(inner.message().encrypted_payload, vec![0xaa, 0xbb, 0xcc]);
+            inner.verify().expect("decoded transit-hop should verify");
+        }
+        _ => panic!("expected transit-hop variant"),
+    }
 }

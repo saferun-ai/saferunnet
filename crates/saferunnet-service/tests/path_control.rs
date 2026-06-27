@@ -5,7 +5,7 @@ use saferunnet_crypto::{
 use saferunnet_identity::{IdentityProof, NodeIdentity};
 use saferunnet_service::{
     AuthenticatedPathControlMessage, AuthenticatedServiceMessage, PathControlError,
-    PathControlMessage, PathPing, ServiceMessageKind,
+    PathControlMessage, PathLatency, PathPing, ServiceMessageKind,
 };
 
 fn make_identity(nickname: &str) -> NodeIdentity {
@@ -255,4 +255,47 @@ fn unsupported_or_truncated_link_payload_is_rejected() {
         truncated_error,
         PathControlError::PayloadTruncated
     ));
+}
+
+#[test]
+fn latency_sign_and_verify_round_trip() {
+    let identity = make_identity("alice");
+    let msg = PathControlMessage::Latency(PathLatency {
+        path_id: 42,
+        latency_us: 1500,
+    });
+    let signed = AuthenticatedPathControlMessage::sign(&identity, msg).expect("sign");
+    signed.verify().expect("verify");
+}
+
+#[test]
+fn latency_encode_decode_round_trip() {
+    let identity = make_identity("alice");
+    let msg = PathControlMessage::Latency(PathLatency {
+        path_id: 7,
+        latency_us: 999,
+    });
+    let signed = AuthenticatedPathControlMessage::sign(&identity, msg).expect("sign");
+    let encoded = signed.encode().expect("encode");
+    let decoded = AuthenticatedPathControlMessage::decode(&encoded).expect("decode");
+    match decoded.message() {
+        PathControlMessage::Latency(l) => {
+            assert_eq!(l.path_id, 7);
+            assert_eq!(l.latency_us, 999);
+        }
+        _ => panic!("expected latency variant"),
+    }
+}
+
+#[test]
+fn latency_tampered_payload_is_rejected() {
+    let identity = make_identity("alice");
+    let msg = PathControlMessage::Latency(PathLatency {
+        path_id: 1,
+        latency_us: 100,
+    });
+    let signed = AuthenticatedPathControlMessage::sign(&identity, msg).expect("sign");
+    let mut encoded = signed.encode().expect("encode");
+    encoded[20] ^= 0xff;
+    assert!(AuthenticatedPathControlMessage::decode(&encoded).is_err());
 }

@@ -1,0 +1,18 @@
+[package]
+name = "saferunnet-link"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+saferunnet-crypto = { path = "../saferunnet-crypto" }
+saferunnet-identity = { path = "../saferunnet-identity" }
+saferunnet-service = { path = "../saferunnet-service" }
+thiserror.workspace = true
+tracing.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+saferunnet-testing = { path = "../saferunnet-testing" }

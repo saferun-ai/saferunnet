@@ -84,6 +84,8 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
     }
     let data_dir =
         last_value(router, "data_dir").unwrap_or_else(|| "./var/lib/saferunnet".to_string());
+    let bind_port = parse_port(router, "bind_port").unwrap_or(1090);
+    let rpc_port = parse_port(router, "rpc_port").unwrap_or(1190);
     let level = raw
         .sections
         .get("logging")
@@ -105,6 +107,20 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
         .and_then(|network| network.get("exit-node"))
         .cloned()
         .unwrap_or_default();
+    let bootstrap_routers = raw
+        .sections
+        .get("router")
+        .and_then(|router| router.get("bootstrap"))
+        .cloned()
+        .unwrap_or_default()
+        .into_iter()
+        .flat_map(|v| {
+            v.split(',')
+                .map(|s| s.trim().to_string())
+                .collect::<Vec<_>>()
+        })
+        .filter(|s| !s.is_empty())
+        .collect();
     let hops = parse_optional_nonzero_u8(raw.sections.get("network"), "hops")?;
     let paths = parse_optional_nonzero_u8(raw.sections.get("network"), "paths")?;
 
@@ -117,9 +133,15 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
     }
 
     Ok(NormalizedConfig {
-        router: RouterConfig { nickname, data_dir },
+        router: RouterConfig {
+            nickname,
+            data_dir,
+            bind_port,
+            rpc_port,
+        },
         logging: LoggingConfig { level },
         network: NetworkConfig {
+            bootstrap_routers,
             exit,
             reachable,
             keyfile,
@@ -239,6 +261,12 @@ fn parse_optional_nonzero_u8(
     }
 
     Ok(Some(value))
+}
+
+fn parse_port(section: &BTreeMap<String, Vec<String>>, key: &str) -> Option<u16> {
+    last_value(section, key)
+        .and_then(|v| v.trim().parse::<u16>().ok())
+        .filter(|p| *p > 0)
 }
 
 fn validate_ifaddr(ifaddr: Option<&str>) -> Result<(), ConfigError> {

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_service::{AuthenticatedLinkMessage, LinkMessageError, SessionState};
 
 pub const LINK_MESSAGE_DISPATCHER_SERVICE_KEY: &str = "saferunnet.link.dispatcher";
@@ -57,6 +57,13 @@ impl RuntimeModule for LinkMessageModule {
         Ok(())
     }
 
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<LinkMessageDispatcher>(
+            LINK_MESSAGE_DISPATCHER_SERVICE_KEY,
+        )];
+        KEYS
+    }
+
     fn start(&mut self) -> Result<(), ModuleError> {
         Ok(())
     }
@@ -97,6 +104,13 @@ impl RuntimeModule for LinkSessionStateModule {
     fn register_services(&mut self, services: &mut ServiceRegistry) -> Result<(), ModuleError> {
         services.insert_named(LINK_SESSION_STATE_SERVICE_KEY, self.state.clone());
         Ok(())
+    }
+
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<LinkSessionState>(
+            LINK_SESSION_STATE_SERVICE_KEY,
+        )];
+        KEYS
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {

@@ -2,7 +2,10 @@ use saferunnet_crypto::{EnvelopeCodecError, SignatureError, SignedEnvelope, Sign
 use saferunnet_identity::{IdentityProof, IdentityProofError, NodeIdentity};
 use thiserror::Error;
 
+mod dht_intro;
+mod exit_announce;
 mod link_message;
+mod path_build;
 mod path_control;
 mod router_announcement;
 mod session_accept;
@@ -11,10 +14,19 @@ mod session_init;
 mod session_path_switch;
 mod session_state;
 mod session_types;
+mod transit_hop;
 
+pub use dht_intro::{
+    AddressFamily, AuthenticatedDhtIntroMessage, DhtIntroEntry, DhtIntroError, DhtIntroMessage,
+};
+pub use exit_announce::{AuthenticatedExitAnnounceMessage, ExitAnnounceError, ExitAnnounceMessage};
 pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
+pub use path_build::{
+    AuthenticatedPathBuildMessage, AuthenticatedPathBuildResponse, PathBuildError,
+    PathBuildMessage, PathBuildResponse, PathHop,
+};
 pub use path_control::{
-    AuthenticatedPathControlMessage, PathControlError, PathControlMessage, PathPing,
+    AuthenticatedPathControlMessage, PathControlError, PathControlMessage, PathLatency, PathPing,
 };
 pub use router_announcement::{
     AuthenticatedRouterAnnouncement, RouterAnnouncement, RouterAnnouncementError, RouterCapability,
@@ -29,6 +41,7 @@ pub use session_path_switch::{
 };
 pub use session_state::{ActiveSession, SessionState, SessionStateError};
 pub use session_types::{SessionHopId, SessionTag};
+pub use transit_hop::{AuthenticatedTransitHopMessage, TransitHopError, TransitHopMessage};
 
 const SERVICE_FRAME_VERSION: u8 = 1;
 const SERVICE_FRAME_HEADER_LEN: usize = 9;
@@ -44,6 +57,11 @@ pub enum ServiceMessageKind {
     LinkSessionPathSwitch,
     LinkSessionAccept,
     LinkSessionClose,
+    DhtIntro,
+    LinkPathBuild,
+    LinkPathBuildResponse,
+    LinkTransitHop,
+    ExitAnnounce,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,9 +163,10 @@ impl AuthenticatedServiceMessage {
         verify_service_envelope(&self.proof, &self.envelope)?;
         let (signed_kind, signed_body) = decode_service_payload(self.envelope.payload())?;
         if signed_kind != self.kind || signed_body != self.body {
-            return Err(ServiceMessageError::PayloadMismatch);
+            return Err(ServiceMessageError::PayloadMismatch {
+                kind: "service message",
+            });
         }
-
         Ok(())
     }
 }
@@ -160,18 +179,18 @@ pub enum ServiceMessageError {
     EnvelopeCodec(#[from] EnvelopeCodecError),
     #[error(transparent)]
     Signature(#[from] SignatureError),
-    #[error("service message framing unsupported version `{0}`")]
-    UnsupportedVersion(u8),
-    #[error("service message framing truncated")]
+    #[error("service message frame truncated")]
     FrameTruncated,
-    #[error("service message framing malformed: {0}")]
+    #[error("unsupported service message frame version `{0}`")]
+    UnsupportedVersion(u8),
+    #[error("service message frame malformed: {0}")]
     FrameMalformed(&'static str),
-    #[error("service message kind and body do not match signed payload")]
-    PayloadMismatch,
-    #[error("service message signer does not match identity proof public key")]
+    #[error("service message signer mismatch")]
     SignerMismatch,
+    #[error("service message `{kind}` payload mismatch")]
+    PayloadMismatch { kind: &'static str },
     #[error(
-        "service message `{field}` exceeds encoded limit `{max}` with length `{length}` bytes"
+        "service message `{field}` frame component exceeds encoded limit `{max}` with length `{length}` bytes"
     )]
     FrameLengthOverflow {
         field: &'static str,
@@ -292,6 +311,11 @@ fn encode_kind(kind: ServiceMessageKind) -> u8 {
         ServiceMessageKind::LinkSessionPathSwitch => 5,
         ServiceMessageKind::LinkSessionAccept => 6,
         ServiceMessageKind::LinkSessionClose => 7,
+        ServiceMessageKind::DhtIntro => 8,
+        ServiceMessageKind::LinkPathBuild => 9,
+        ServiceMessageKind::LinkPathBuildResponse => 10,
+        ServiceMessageKind::LinkTransitHop => 11,
+        ServiceMessageKind::ExitAnnounce => 12,
     }
 }
 
@@ -304,6 +328,11 @@ fn decode_kind(encoded: u8) -> Result<ServiceMessageKind, ServiceMessageError> {
         5 => Ok(ServiceMessageKind::LinkSessionPathSwitch),
         6 => Ok(ServiceMessageKind::LinkSessionAccept),
         7 => Ok(ServiceMessageKind::LinkSessionClose),
+        8 => Ok(ServiceMessageKind::DhtIntro),
+        9 => Ok(ServiceMessageKind::LinkPathBuild),
+        10 => Ok(ServiceMessageKind::LinkPathBuildResponse),
+        11 => Ok(ServiceMessageKind::LinkTransitHop),
+        12 => Ok(ServiceMessageKind::ExitAnnounce),
         _ => Err(ServiceMessageError::FrameMalformed(
             "unsupported service message kind",
         )),

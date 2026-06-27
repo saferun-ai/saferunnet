@@ -1,0 +1,11 @@
+[package]
+name = "saferunnet-observability"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tracing.workspace = true
+tracing-subscriber.workspace = true
+serde.workspace = true
+parking_lot.workspace = true
+thiserror.workspace = true

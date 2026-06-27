@@ -1,0 +1,14 @@
+[package]
+name = "saferunnet-transport"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+saferunnet-platform = { path = "../saferunnet-platform" }
+quinn.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+bytes.workspace = true
+rand.workspace = true
+async-trait.workspace = true

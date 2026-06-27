@@ -1,0 +1,19 @@
+[package]
+name = "saferunnet-path"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+saferunnet-core = { path = "../saferunnet-core" }
+saferunnet-crypto = { path = "../saferunnet-crypto" }
+saferunnet-identity = { path = "../saferunnet-identity" }
+thiserror.workspace = true
+tracing.workspace = true
+rand_core = "0.6"
+
+[dev-dependencies]
+saferunnet-testing = { path = "../saferunnet-testing" }
+

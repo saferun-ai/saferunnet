@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use saferunnet_core::{ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator};
-use saferunnet_identity::{FileIdentityRepository, IdentitySpec};
+use saferunnet_identity::{FileIdentityRepository, IdentitySpec, NodeIdentity};
 
 pub const NODE_IDENTITY_SERVICE_KEY: &str = "saferunnet.identity.node";
 
@@ -51,6 +51,11 @@ impl RuntimeModule for IdentityModule {
             })?;
         services.insert_named(NODE_IDENTITY_SERVICE_KEY, identity);
         Ok(())
+    }
+
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<NodeIdentity>(NODE_IDENTITY_SERVICE_KEY)];
+        KEYS
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {

@@ -1,0 +1,18 @@
+[package]
+name = "saferunnet"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "saferunnet"
+path = "src/main.rs"
+
+[dependencies]
+saferunnet-core = { path = "../saferunnet-core" }
+saferunnet-crypto = { path = "../saferunnet-crypto" }
+saferunnet-transport = { path = "../saferunnet-transport" }
+saferunnet-platform = { path = "../saferunnet-platform" }
+saferunnet-observability = { path = "../saferunnet-observability" }
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true

@@ -1,0 +1,121 @@
+<h2>SaferunNet Architecture — Target Design</h2>
+<p class="subtitle">6 crates · QUIC transport · Oxen chain integration · Complete observability</p>
+
+<div class="section">
+<h3>Crate Dependency Graph</h3>
+<pre style="background:#1a1a2e;color:#e0e0e0;padding:16px;border-radius:8px;font-size:13px;line-height:1.6">
+saferunnet (binary)
+  ├── saferunnet-core ──────────────┐
+  │   ├── handlers (TunEndpoint)    │
+  │   ├── router / path / dns       │ ──→ saferunnet-crypto
+  │   ├── session / config          │
+  │   ├── auth / consensus / contact│
+  │   ├── net (IPPacket)            │
+  │   ├── rpc (OxenClient)          │ ──→ saferunnet-transport
+  │   └── oxen-encoding (bencode)   │
+  ├── saferunnet-transport ─────────┤
+  │   ├── link (QUIC LinkManager)   │
+  │   ├── ev (event loop)           │ ──→ saferunnet-platform
+  │   └── quinn (QUIC rust impl)    │
+  ├── saferunnet-platform ──────────┘
+  │   ├── TUN / WinDivert
+  │   └── OS abstraction
+  ├── saferunnet-observability
+  │   ├── multi-sink (Print/File/RPC)
+  │   ├── category-based levels
+  │   └── ring buffer (RPC log push)
+  └── saferunnet-crypto
+      ├── x25519 / ed25519
+      └── encryption
+</pre>
+</div>
+
+<div class="section">
+<h3>18 → 6 Crate Merge Map</h3>
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+<tr style="background:#2a2a4a;color:#fff">
+  <th style="padding:8px;text-align:left">Old (18)</th>
+  <th style="padding:8px;text-align:center">→</th>
+  <th style="padding:8px;text-align:left">New (6)</th>
+</tr>
+<tr><td style="padding:6px;border-bottom:1px solid #333">saferunnet-core, saferunnet-router, saferunnet-path, saferunnet-dns, saferunnet-session, saferunnet-dht, saferunnet-exit, saferunnet-service, saferunnet-config, saferunnet-identity, saferunnet-rpc, saferunnet-compat-lokinet</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;border-bottom:1px solid #333"><b>saferunnet-core</b></td></tr>
+<tr><td style="padding:6px;border-bottom:1px solid #333">saferunnet-transport, saferunnet-link</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;border-bottom:1px solid #333"><b>saferunnet-transport</b></td></tr>
+<tr><td style="padding:6px;border-bottom:1px solid #333">saferunnet-platform</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;border-bottom:1px solid #333"><b>saferunnet-platform</b></td></tr>
+<tr><td style="padding:6px;border-bottom:1px solid #333">saferunnet-crypto</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;border-bottom:1px solid #333"><b>saferunnet-crypto</b></td></tr>
+<tr><td style="padding:6px;border-bottom:1px solid #333">saferunnet-observability</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;border-bottom:1px solid #333"><b>saferunnet-observability</b></td></tr>
+<tr><td style="padding:6px;">saferunnet-app, saferunnet-testing</td><td style="padding:6px;text-align:center">→</td><td style="padding:6px;"><b>saferunnet</b> (binary + integration tests)</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h3>New Modules (from Lokinet C++)</h3>
+<div class="split">
+<div style="flex:1">
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ handlers/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">TunEndpoint — inbound/outbound IP packet processing<br>TunBase — TUN interface abstraction</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ net/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">IPPacket build/parse<br>IPv4/v6 checksum<br>Net policy</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ auth/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">Service node auth tokens<br>File-based auth<br>RPC auth</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ oxen-encoding/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">Bencode serialization<br>bt_dict/bt_list/bt_value<br>Byte-identical to C++</p>
+  </div>
+</div>
+<div style="flex:1">
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ consensus/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">SN reachability testing<br>Failing node tracking</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ contact/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">RouterContact struct<br>Introset data</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ OxenRpcClient</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">Oxen chain RPC<br>update_service_node_list<br>obtain_identity_key</p>
+  </div>
+  <div style="background:#1a3a1a;padding:12px;border-radius:8px;margin:4px">
+    <span class="label" style="color:#4c4">+ address/ constants/</span>
+    <p style="font-size:12px;margin:4px 0;color:#aaa">IP addressing utilities<br>Global protocol constants</p>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="section">
+<h3>Transport Layer: UDP → QUIC</h3>
+<pre style="background:#1a1a2e;color:#e0e0e0;padding:16px;border-radius:8px;font-size:12px;line-height:1.6">
+Current:  saferunnet-transport/
+          ├── udp.rs       (raw UDP socket)
+          └── transport.rs (bare wrapper)
+
+Target:  saferunnet-transport/
+         ├── quic.rs         (quinn::Connection wrapper)
+         ├── datagrams.rs    (QUIC unreliable datagram per RFC 9221)
+         ├── control.rs      (BTRequestStream → bidirectional stream)
+         ├── link.rs         (LinkManager — merged from saferunnet-link)
+         ├── event.rs        (Event loop abstraction)
+         ├── tcp_tunnel.rs   (TCPHandle / TCPConnection)
+         └── traits.rs       (TransportLayer trait for testing)
+</pre>
+</div>
+
+<div class="section">
+<h3>Observability: 24-line → Full spdlog-level</h3>
+<pre style="background:#1a1a2e;color:#e0e0e0;padding:16px;border-radius:8px;font-size:12px;line-height:1.6">
+saferunnet-observability/
+├── sink.rs        (Print / File / System syslog sinks)
+├── category.rs    (per-module log level: router=debug, crypto=warn...)
+├── ringbuf.rs     (ring buffer for RPC log subscription)
+├── callback.rs    (callback sink for external consumers)
+├── config.rs      (LoggingConfig from config file)
+└── init.rs        (init_logging from config)
+</pre>
+</div>

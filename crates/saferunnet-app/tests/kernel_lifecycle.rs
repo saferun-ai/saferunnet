@@ -1,5 +1,5 @@
 use saferunnet_app::{AppKernel, IdentityModule, NODE_IDENTITY_SERVICE_KEY};
-use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule, ServiceRegistry};
+use saferunnet_core::{LifecycleState, ModuleError, RuntimeModule, ServiceKey, ServiceRegistry};
 use saferunnet_crypto::{
     KeyAlgorithm, KeyGenerationError, KeyGenerator, KeyPair, PublicKey, SecretKey,
 };
@@ -170,8 +170,9 @@ impl RuntimeModule for ContractModule {
         "contract"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &["SharedNickname"]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<SharedNickname>("SharedNickname")];
+        KEYS
     }
 
     fn start(&mut self) -> Result<(), ModuleError> {
@@ -233,8 +234,9 @@ impl RuntimeModule for IdentityConsumerModule {
         "identity-consumer"
     }
 
-    fn required_service_keys(&self) -> &'static [&'static str] {
-        &[NODE_IDENTITY_SERVICE_KEY]
+    fn required_service_keys(&self) -> &[ServiceKey] {
+        const KEYS: &[ServiceKey] = &[ServiceKey::of::<NodeIdentity>(NODE_IDENTITY_SERVICE_KEY)];
+        KEYS
     }
 
     fn wire(&mut self, services: &ServiceRegistry) -> Result<(), ModuleError> {
@@ -284,4 +286,49 @@ fn kernel_allows_identity_module_to_publish_services_for_dependents() {
     );
 
     let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn registration_failure_rolls_back_previous_registrations() {
+    let tmp = std::env::temp_dir().join(format!("saferunnet-rollback-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let keyfile = tmp.join("identity.key");
+
+    let mut kernel = AppKernel::new();
+    kernel.register(Box::new(IdentityModule::new(
+        FileIdentityRepository::new(keyfile.clone()),
+        IdentitySpec {
+            nickname: "rollback-test".to_string(),
+            algorithm: KeyAlgorithm::Ed25519,
+        },
+        Box::new(FixedKeyGenerator),
+    )));
+
+    struct FailingModule;
+    impl RuntimeModule for FailingModule {
+        fn name(&self) -> &'static str {
+            "failing"
+        }
+        fn register_services(&mut self, _: &mut ServiceRegistry) -> Result<(), ModuleError> {
+            Err(ModuleError::ServiceRegistration {
+                module: "failing",
+                reason: "intentional test failure".into(),
+            })
+        }
+        fn start(&mut self) -> Result<(), ModuleError> {
+            Ok(())
+        }
+        fn stop(&mut self) -> Result<(), ModuleError> {
+            Ok(())
+        }
+    }
+    kernel.register(Box::new(FailingModule));
+
+    let result = kernel.start();
+    assert!(result.is_err());
+
+    // After rollback, identity service should be cleared
+    assert!(!kernel.services().contains_key(NODE_IDENTITY_SERVICE_KEY));
+
+    let _ = std::fs::remove_file(keyfile);
 }
