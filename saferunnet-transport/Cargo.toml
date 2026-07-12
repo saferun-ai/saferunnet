@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+saferunnet-core = { path = "../saferunnet-core" }
 saferunnet-platform = { path = "../saferunnet-platform" }
 quinn.workspace = true
 tokio.workspace = true
@@ -17,3 +18,4 @@ rustls = { version = "0.23", features = ["ring"] }
 
 [dev-dependencies]
 rcgen = "0.13"
+

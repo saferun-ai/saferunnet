@@ -1,29 +1,11 @@
 use async_trait::async_trait;
 use bytes::Bytes;
+pub use saferunnet_core::TransportError;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 /// Result type for transport operations
 pub type TransportResult<T> = Result<T, TransportError>;
-
-/// Transport layer errors
-#[derive(Debug, thiserror::Error)]
-pub enum TransportError {
-    #[error("connection failed: {0}")]
-    ConnectionFailed(String),
-    #[error("bind failed: {0}")]
-    BindFailed(String),
-    #[error("recv failed: {0}")]
-    RecvFailed(String),
-    #[error("connection closed")]
-    Closed,
-    #[error("send failed: {0}")]
-    SendFailed(String),
-    #[error("timeout: {0}")]
-    Timeout(String),
-    #[error("not found: {0}")]
-    NotFound(String),
-}
 
 /// Type alias for the transport used by LinkManager
 pub type LinkManagerTransport = Arc<dyn TransportLayer>;
@@ -92,3 +74,4 @@ pub trait Listener: Send + Sync {
     /// Local address being listened on
     fn local_addr(&self) -> SocketAddr;
 }
+

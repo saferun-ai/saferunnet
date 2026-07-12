@@ -4,6 +4,7 @@ pub mod path_control;
 pub mod select;
 pub mod svc_path_build;
 pub mod transit_hop;
+pub mod orchestrator;
 
 use saferunnet_crypto::PublicKey;
 use thiserror::Error;

@@ -234,7 +234,20 @@ fn dispatch(
                 ),
             }
         }
-        "stop" => RpcResponse::success(req.id, serde_json::json!({"stopping": true})),
+                "session_init" => {
+            let pk = req.params.get("pubkey").and_then(|v| v.as_str()).unwrap_or("");
+            RpcResponse::success(req.id, serde_json::json!({"ok": false, "info": "session_init stub", "pubkey": pk}))
+        }
+        "lookup_snode" => {
+            let pk = req.params.get("pubkey").and_then(|v| v.as_str()).unwrap_or("");
+            RpcResponse::success(req.id, serde_json::json!({"error": "not found", "pubkey": pk}))
+        }
+        "halt" => {
+            RpcResponse::success(req.id, serde_json::json!({"ok": false, "info": "halt stub"}))
+        }
+        "version" => {
+            RpcResponse::success(req.id, serde_json::json!({"version": "0.2.0", "protocol": 1}))
+        }        "stop" => RpcResponse::success(req.id, serde_json::json!({"stopping": true})),
         unknown => RpcResponse::error(
             req.id,
             error_codes::METHOD_NOT_FOUND,

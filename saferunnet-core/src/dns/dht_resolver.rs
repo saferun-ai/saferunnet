@@ -1,4 +1,4 @@
-use crate::dns::resolver::{is_loki_name, DhtClient, DnsError, LokiResolver};
+use crate::dns::resolver::{is_saferunnet_name, strip_saferunnet_suffix, DhtClient, DnsError, LokiResolver};
 use saferunnet_crypto::PublicKey;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -19,7 +19,7 @@ impl<C: DhtClient> DhtLokiResolver<C> {
 
 impl<C: DhtClient> LokiResolver for DhtLokiResolver<C> {
     fn resolve(&self, name: &str) -> Result<Vec<PublicKey>, DnsError> {
-        if !is_loki_name(name) {
+        if !is_saferunnet_name(name) {
             return Err(DnsError::NotLokiName(name.to_string()));
         }
 
@@ -49,7 +49,7 @@ impl<C: DhtClient> LokiResolver for DhtLokiResolver<C> {
 
 fn derive_key_from_loki_name(name: &str) -> PublicKey {
     use std::hash::{Hash, Hasher};
-    let host = name.strip_suffix(".loki").unwrap_or(name);
+    let host = strip_saferunnet_suffix(name).unwrap_or(name);
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     host.hash(&mut hasher);
     let hash = hasher.finish();

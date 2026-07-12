@@ -1,12 +1,62 @@
-use std::collections::HashSet;
+use std::collections::HashSet as StdHashSet;
 use std::time::{Duration, Instant};
+use crate::contact::{RouterContact, RouterId};
+use thiserror::Error;
+
+/// Errors that can occur during consensus verification.
+/// Lokinet C++ equivalent: llarp/consensus/ validation errors
+#[derive(Debug, Error)]
+pub enum ConsensusError {
+    #[error("too few nodes in consensus: got {0}, need at least {1}")]
+    TooFewNodes(usize, usize),
+
+    #[error("duplicate router id in node list: {0}")]
+    DuplicateRouterId(String),
+
+    #[error("invalid signature for router {0}")]
+    InvalidSignature(String),
+}
+
+/// Verifier for consensus-related data.
+/// Lokinet C++ equivalent: llarp/consensus/ verification routines
+pub struct ConsensusVerifier;
+
+impl ConsensusVerifier {
+    /// Verify that a list of RouterContacts forms a valid consensus node list.
+    /// Requirements: at least `min_nodes` entries, all RouterIds unique.
+    pub fn verify_node_list(rcs: &[RouterContact], min_nodes: usize) -> Result<(), ConsensusError> {
+        if rcs.len() < min_nodes {
+            return Err(ConsensusError::TooFewNodes(rcs.len(), min_nodes));
+        }
+
+        let mut seen = StdHashSet::new();
+        for rc in rcs {
+            let rid = RouterId::from_contact(rc);
+            let rid_bytes = rid.as_bytes();
+            let key: String = rid_bytes.iter().map(|b| format!("{b:02x}")).collect();
+            if !seen.insert(key.clone()) {
+                return Err(ConsensusError::DuplicateRouterId(key));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Verify a RouterContact signature.
+    /// Currently a stub that always returns `true`.
+    /// In a full implementation this would verify using the router's public key.
+    pub fn verify_rc_signature(_rc: &RouterContact, _sig: &[u8]) -> bool {
+        // Stub: signature verification not yet implemented
+        true
+    }
+}
 
 /// Reachability testing for service nodes.
 /// Lokinet C++ equivalent: llarp/consensus/reachability_testing.hpp reachability_testing
 pub struct ReachabilityTester {
     /// Nodes currently in "failed" status with (key, next_test_time, failure_count)
     failing: Vec<(Vec<u8>, Instant, u32)>,
-    failing_set: HashSet<Vec<u8>>,
+    failing_set: StdHashSet<Vec<u8>>,
     /// Queue of all known nodes to test
     testing_queue: Vec<Vec<u8>>,
     next_general_test: Instant,
@@ -24,7 +74,7 @@ impl ReachabilityTester {
     pub fn new() -> Self {
         Self {
             failing: Vec::new(),
-            failing_set: HashSet::new(),
+            failing_set: StdHashSet::new(),
             testing_queue: Vec::new(),
             next_general_test: Instant::now(),
             testing_interval: Duration::from_secs(10),
@@ -96,6 +146,8 @@ impl ReachabilityTester {
 mod tests {
     use super::*;
 
+    // ── ReachabilityTester tests ───────────────────────────────────────
+
     #[test]
     fn test_add_and_remove_failing() {
         let mut rt = ReachabilityTester::new();
@@ -104,5 +156,47 @@ mod tests {
         assert_eq!(rt.get_failing(Instant::now()).len(), 0); // Not due yet
         rt.remove_node_from_failing(&key);
         // Should be empty now
+    }
+
+    // ── Consensus tests ────────────────────────────────────────────────
+
+    fn make_rc(pubkey_byte: u8) -> RouterContact {
+        RouterContact::new(vec![pubkey_byte; 32])
+    }
+
+    #[test]
+    fn test_verify_empty_list_error() {
+        let result = ConsensusVerifier::verify_node_list(&[], 1);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ConsensusError::TooFewNodes(0, 1)));
+    }
+
+    #[test]
+    fn test_verify_too_few_nodes() {
+        let rcs = vec![make_rc(1)];
+        let result = ConsensusVerifier::verify_node_list(&rcs, 3);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ConsensusError::TooFewNodes(1, 3)));
+    }
+
+    #[test]
+    fn test_verify_duplicate_rid() {
+        let rcs = vec![make_rc(5), make_rc(5), make_rc(10)];
+        let result = ConsensusVerifier::verify_node_list(&rcs, 2);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ConsensusError::DuplicateRouterId(_)));
+    }
+
+    #[test]
+    fn test_verify_valid_node_list() {
+        let rcs = vec![make_rc(1), make_rc(2), make_rc(3)];
+        let result = ConsensusVerifier::verify_node_list(&rcs, 2);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_rc_signature_stub() {
+        let rc = make_rc(42);
+        assert!(ConsensusVerifier::verify_rc_signature(&rc, b"any signature"));
     }
 }

@@ -8,6 +8,7 @@ mod session_init;
 mod session_path_switch;
 pub mod session_state;
 mod session_types;
+pub mod session_manager;
 
 pub use session_accept::{
     AuthenticatedSessionAcceptMessage, SessionAcceptError, SessionAcceptMessage,
@@ -319,3 +320,4 @@ fn take_frame_exact<'a>(
     *input = tail;
     Ok(head)
 }
+

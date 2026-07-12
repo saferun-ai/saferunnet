@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::dns::resolver::{DhtClient, DhtIntroResult};
 use saferunnet_crypto::PublicKey;
-use saferunnet_transport::LinkTransport;
+use crate::transport::LinkTransport;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
@@ -223,15 +223,15 @@ mod tests {
             &self,
             _data: &[u8],
             _addr: SocketAddr,
-        ) -> Result<usize, saferunnet_transport::TransportError> {
+        ) -> Result<usize, crate::transport::TransportError> {
             Ok(0)
         }
 
         async fn recv_from(
             &self,
             _buf: &mut [u8],
-        ) -> Result<saferunnet_transport::Datagram, saferunnet_transport::TransportError> {
-            Err(saferunnet_transport::TransportError::Closed)
+        ) -> Result<crate::transport::Datagram, crate::transport::TransportError> {
+            Err(crate::transport::TransportError::Closed)
         }
 
         fn close(&self) {}
@@ -270,3 +270,5 @@ mod tests {
         assert!(results.is_empty());
     }
 }
+
+

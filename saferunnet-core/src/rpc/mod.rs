@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod server;
+pub mod admin;
+pub mod param_parser;
+pub mod commands;
 pub use server::RpcServer;
 
 // ---------------------------------------------------------------------------

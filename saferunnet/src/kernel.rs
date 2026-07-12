@@ -43,6 +43,12 @@ impl AppKernel {
         &self.services
     }
 
+
+    /// Number of registered modules.
+    pub fn module_count(&self) -> usize {
+        self.modules.len()
+    }
+
     pub fn services_mut(&mut self) -> &mut ServiceRegistry {
         &mut self.services
     }

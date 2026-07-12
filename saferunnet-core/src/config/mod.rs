@@ -1,8 +1,10 @@
 mod compat_lokinet;
+mod definition;
 mod model;
 mod parser;
 
-pub use model::{LoggingConfig, NetworkConfig, NormalizedConfig, RouterConfig};
+pub use definition::{ConfigValue, OptionDef};
+pub use model::{ApiConfig, DnsConfig, LoggingConfig, NetworkConfig, NormalizedConfig, RouterConfig};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -123,6 +125,11 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
         })
         .filter(|s| !s.is_empty())
         .collect();
+        let oxend_rpc = raw
+        .sections
+        .get("router")
+        .and_then(|router| last_value(router, "oxend-rpc"));
+
     let hops = parse_optional_nonzero_u8(raw.sections.get("network"), "hops")?;
     let paths = parse_optional_nonzero_u8(raw.sections.get("network"), "paths")?;
 
@@ -136,6 +143,7 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
 
     Ok(NormalizedConfig {
         router: RouterConfig {
+            oxend_rpc,
             nickname,
             data_dir,
             bind_port,
@@ -152,6 +160,7 @@ fn normalize(raw: RawLokinetConfig) -> Result<NormalizedConfig, ConfigError> {
             hops,
             paths,
         },
+        dns: DnsConfig::default(),
     })
 }
 
@@ -291,4 +300,132 @@ fn validate_ifaddr(ifaddr: Option<&str>) -> Result<(), ConfigError> {
     }
 
     Ok(())
+}
+
+/// Validate a normalized configuration and return human-readable warnings.
+///
+/// Returns a list of warning messages for suspicious or invalid combinations.
+/// An empty list means the configuration passed all soft checks.
+pub fn validate_config(cfg: &NormalizedConfig) -> Vec<String> {
+    let mut warnings = Vec::new();
+
+    // Exit mode requires an interface address.
+    if cfg.network.exit && cfg.network.ifaddr.is_none() {
+        warnings.push(
+            "network.exit is enabled but network.ifaddr is not set — exit traffic may be unroutable"
+                .into(),
+        );
+    }
+
+    // Unusual hop/path counts.
+    if let Some(hops) = cfg.network.hops {
+        if hops < 2 {
+            warnings.push(format!(
+                "network.hops={hops} is unusually low; consider at least 2 for meaningful anonymity"
+            ));
+        }
+        if hops > 8 {
+            warnings.push(format!(
+                "network.hops={hops} is high and will increase latency significantly"
+            ));
+        }
+    }
+
+    if let Some(paths) = cfg.network.paths {
+        if paths == 0 {
+            warnings.push("network.paths=0 means no paths will be built — node will be isolated".into());
+        }
+    }
+
+    // DNS: bind_addr without upstream may fail on some platforms.
+    if cfg.dns.upstream.as_deref().map_or(true, |u| u.is_empty()) {
+        warnings.push(
+            "dns.upstream is empty; the OS resolver will be used but may leak DNS queries".into(),
+        );
+    }
+
+    // Router port conflicts.
+    if cfg.router.bind_port == cfg.router.rpc_port {
+        warnings.push(format!(
+            "router.bind_port ({}) and rpc_port ({}) are the same — one service will fail to bind",
+            cfg.router.bind_port, cfg.router.rpc_port
+        ));
+    }
+
+    warnings
+}
+
+/// Load a default configuration without reading any file.
+pub fn load_defaults() -> NormalizedConfig {
+    NormalizedConfig::default_config()
+}
+
+#[cfg(test)]
+mod validation_tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_exit_requires_ifaddr() {
+        let mut cfg = NormalizedConfig::default_config();
+        cfg.network.exit = true;
+        cfg.network.ifaddr = None;
+        let warnings = validate_config(&cfg);
+        assert!(
+            warnings.iter().any(|w| w.contains("ifaddr")),
+            "expected ifaddr warning, got: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn test_validate_exit_with_ifaddr_no_warning() {
+        let mut cfg = NormalizedConfig::default_config();
+        cfg.network.exit = true;
+        cfg.network.ifaddr = Some("10.0.0.1/16".into());
+        let warnings = validate_config(&cfg);
+        assert!(
+            !warnings.iter().any(|w| w.contains("ifaddr")),
+            "unexpected ifaddr warning: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn test_validate_port_conflict() {
+        let mut cfg = NormalizedConfig::default_config();
+        cfg.router.bind_port = 1190;
+        cfg.router.rpc_port = 1190;
+        let warnings = validate_config(&cfg);
+        assert!(
+            warnings.iter().any(|w| w.contains("same")),
+            "expected port conflict warning, got: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn test_validate_low_hops() {
+        let mut cfg = NormalizedConfig::default_config();
+        cfg.network.hops = Some(1);
+        let warnings = validate_config(&cfg);
+        assert!(
+            warnings.iter().any(|w| w.contains("hops")),
+            "expected hops warning, got: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn test_validate_defaults_no_port_conflict() {
+        let cfg = NormalizedConfig::default_config();
+        let warnings = validate_config(&cfg);
+        assert!(
+            !warnings.iter().any(|w| w.contains("same")),
+            "unexpected port conflict for defaults: {warnings:?}"
+        );
+    }
+
+    #[test]
+    fn test_load_defaults() {
+        let cfg = load_defaults();
+        assert_eq!(cfg.router.nickname, "saferunnet-node");
+        assert_eq!(cfg.router.bind_port, 1090);
+        assert_eq!(cfg.logging.level, "info");
+    }
 }

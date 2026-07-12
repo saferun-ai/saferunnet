@@ -1,7 +1,7 @@
 const SESSION_HOP_ID_LEN: usize = 16;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SessionHopId([u8; SESSION_HOP_ID_LEN]);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SessionHopId(pub [u8; SESSION_HOP_ID_LEN]);
 
 impl SessionHopId {
     pub fn new(bytes: [u8; SESSION_HOP_ID_LEN]) -> Self {
@@ -23,8 +23,8 @@ impl From<[u8; SESSION_HOP_ID_LEN]> for SessionHopId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SessionTag(u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SessionTag(pub u32);
 
 impl SessionTag {
     pub fn new(value: u32) -> Self {

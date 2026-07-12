@@ -5,6 +5,10 @@ use std::time::{Duration, Instant};
 use crate::address::{Ipv4Net, Ipv6Net};
 use crate::net::IpPacket;
 use crate::vpn::policy::ExitPolicy;
+use crate::dns::message::DnsMessage;
+use crate::dns::resolver::LokiResolver;
+use crate::dns::resolver::is_saferunnet_name;
+use crate::dns::server::{LOKI_TUN_GATEWAY, DEFAULT_TTL};
 use thiserror::Error;
 use tracing;
 
@@ -135,6 +139,9 @@ pub struct TunEndpoint {
     // ── Exit policy ────────────────────────────────────────────────────
     pub exit_policy: Option<Box<dyn ExitPolicy>>,
 
+    // ── DNS resolver ──────────────────────────────────────────────────
+    pub resolver: Option<Box<dyn LokiResolver>>,
+
     // ── IP address mappings ────────────────────────────────────────────
     pub ipv4_mapping: AddressMap<Ipv4Addr>,
     pub ipv6_mapping: AddressMap<Ipv6Addr>,
@@ -161,6 +168,7 @@ impl TunEndpoint {
             if_name,
             path_alignment_timeout: Duration::from_secs(30),
             exit_policy: None,
+            resolver: None,
             ipv4_mapping: AddressMap::new(),
             ipv6_mapping: AddressMap::new(),
             sessions: HashMap::new(),
@@ -487,6 +495,51 @@ impl TunEndpoint {
             self.ipv6_mapping.remove(remote);
         }
     }
+
+    // ── DNS hook ───────────────────────────────────────────────────────
+
+    /// Hook for .loki DNS resolution.
+    /// If the query contains a .loki name, resolve it and synthesize an A record response.
+    /// Returns None if the query does not contain a .loki name.
+    pub fn hook_dns_query(&self, msg: &DnsMessage) -> Option<DnsMessage> {
+        let has_loki = msg.questions.iter().any(|q| is_saferunnet_name(&q.name));
+        if !has_loki {
+            return None;
+        }
+
+        let mut response = DnsMessage::response_from(msg);
+
+        if self.resolver.is_none() {
+            for q in &msg.questions {
+                if is_saferunnet_name(&q.name) {
+                    response.add_a_answer(&q.name, LOKI_TUN_GATEWAY, DEFAULT_TTL);
+                }
+            }
+            return Some(response);
+        }
+
+        let resolver = self.resolver.as_ref().unwrap();
+        let mut all_resolved = true;
+        for q in &msg.questions {
+            if !is_saferunnet_name(&q.name) {
+                continue;
+            }
+            match resolver.resolve(&q.name) {
+                Ok(pks) if !pks.is_empty() => {
+                    response.add_a_answer(&q.name, LOKI_TUN_GATEWAY, DEFAULT_TTL);
+                }
+                _ => {
+                    all_resolved = false;
+                }
+            }
+        }
+
+        if !all_resolved && response.answers.is_empty() {
+            response.add_nx_reply();
+        }
+
+        Some(response)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -772,5 +825,48 @@ mod tests {
         assert_eq!(traffic_type::TCP, 1);
         assert_eq!(traffic_type::RAW, 2);
         assert_eq!(traffic_type::TUNNELED_QUIC, 3);
+    }
+
+    // ── Test: DNS hook resolves .loki name ─────────────────────────────
+
+    #[test]
+    fn test_hook_dns_loki_resolves() {
+        use crate::dns::message::{DnsQuestion, QTYPE_A, QCLASS_IN, FLAGS_QR};
+        let ep = TunEndpoint::new(test_net(), "tun0".into());
+
+        let mut query = DnsMessage::new(1);
+        query.questions.push(DnsQuestion {
+            name: "myservice.loki".into(),
+            qtype: QTYPE_A,
+            qclass: QCLASS_IN,
+        });
+
+        let response = ep.hook_dns_query(&query);
+        assert!(response.is_some());
+        let resp = response.unwrap();
+        assert_eq!(resp.id, 1);
+        assert!(resp.flags & FLAGS_QR != 0);
+        assert_eq!(resp.questions.len(), 1);
+        assert_eq!(resp.answers.len(), 1);
+        assert_eq!(resp.answers[0].name, "myservice.loki");
+        assert_eq!(resp.answers[0].rdata, LOKI_TUN_GATEWAY.to_vec());
+    }
+
+    // ── Test: DNS hook ignores non-.loki name ──────────────────────────
+
+    #[test]
+    fn test_hook_dns_non_loki_none() {
+        use crate::dns::message::{DnsQuestion, QTYPE_A, QCLASS_IN};
+        let ep = TunEndpoint::new(test_net(), "tun0".into());
+
+        let mut query = DnsMessage::new(2);
+        query.questions.push(DnsQuestion {
+            name: "example.com".into(),
+            qtype: QTYPE_A,
+            qclass: QCLASS_IN,
+        });
+
+        let response = ep.hook_dns_query(&query);
+        assert!(response.is_none());
     }
 }

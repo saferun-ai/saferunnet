@@ -1,5 +1,6 @@
 pub mod onion;
 pub mod path_build;
+pub mod route_poker;
 pub mod relay;
 pub mod router_announcement;
 

@@ -66,7 +66,7 @@ struct StubLokiResolver;
 
 impl LokiResolver for StubLokiResolver {
     fn resolve(&self, name: &str) -> Result<Vec<PublicKey>, DnsError> {
-        if !saferunnet_core::dns::resolver::is_loki_name(name) {
+        if !saferunnet_core::dns::resolver::is_saferunnet_name(name) {
             return Err(DnsError::NotLokiName(name.to_string()));
         }
         Ok(Vec::new())

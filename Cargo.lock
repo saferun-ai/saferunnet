@@ -664,6 +664,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "http"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1622,11 +1628,13 @@ name = "saferunnet"
 version = "0.2.0"
 dependencies = [
  "clap",
+ "parking_lot",
  "saferunnet-core",
  "saferunnet-crypto",
  "saferunnet-observability",
  "saferunnet-platform",
  "saferunnet-transport",
+ "serde_json",
  "tokio",
  "tracing",
 ]
@@ -1638,15 +1646,17 @@ dependencies = [
  "aes-gcm",
  "bytes",
  "ed25519-dalek",
+ "hex",
+ "libc",
  "parking_lot",
  "rand 0.8.6",
  "rand_core 0.6.4",
  "reqwest",
  "saferunnet-crypto",
  "saferunnet-observability",
- "saferunnet-transport",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -1696,6 +1706,7 @@ dependencies = [
  "rand 0.8.6",
  "rcgen",
  "rustls",
+ "saferunnet-core",
  "saferunnet-platform",
  "thiserror 2.0.18",
  "tokio",

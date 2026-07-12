@@ -1,3 +1,4 @@
+pub mod mapping;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 /// IP network range for IPv4
