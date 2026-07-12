@@ -1,4 +1,9 @@
 use thiserror::Error;
+use std::net::SocketAddr;
+ use std::sync::Arc;
+ use tokio::sync::RwLock;
+ use crate::transport::{LinkTransport, TransportError};
+
 
 /// Maximum payload size for a single LLARP frame.
 pub const MAX_FRAME_PAYLOAD: usize = 1024;
@@ -161,6 +166,25 @@ fn take_exact<'a>(input: &mut &'a [u8], count: usize) -> Result<&'a [u8], FrameC
     let (head, tail) = input.split_at(count);
     *input = tail;
     Ok(head)
+}
+
+
+// ── Link Manager ───────────────────────────────────────────────────────────
+
+pub struct LinkManager<T: LinkTransport> {
+    transport: Arc<T>,
+    listen_addr: RwLock<Option<SocketAddr>>,
+    session_count: RwLock<usize>,
+}
+
+impl<T: LinkTransport + 'static> LinkManager<T> {
+    pub fn new(transport: Arc<T>) -> Self {
+        Self { transport, listen_addr: RwLock::new(None), session_count: RwLock::new(0) }
+    }
+    pub async fn start(&self) -> Result<(), TransportError> { Ok(()) }
+    pub async fn stop(&self) -> Result<(), TransportError> { Ok(()) }
+    pub fn num_sessions(&self) -> usize { 0 }
+    pub fn connected_peers(&self) -> Vec<String> { Vec::new() }
 }
 
 #[cfg(test)]

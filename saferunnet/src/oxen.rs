@@ -73,8 +73,8 @@ impl RuntimeModule for OxenBootstrapModule {
         let handle = tokio::runtime::Handle::current();
 
         // Do initial fetch
-        handle.block_on(async {
-            match bootstrapper.fetch_and_populate().await {
+        let b = bootstrapper.clone(); handle.spawn(async move {
+            match b.fetch_and_populate().await {
                 Ok(n) => tracing::info!("oxen bootstrap: {} nodes loaded from chain", n),
                 Err(e) => tracing::warn!("oxen bootstrap: initial fetch failed (will retry): {e}"),
             }

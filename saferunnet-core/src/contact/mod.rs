@@ -56,6 +56,59 @@ impl RouterContact {
             supported_protocols: vec!["quic".into()],
         }
     }
+
+    /// Encode the first IPv4 address as raw 6 bytes (4B IP + 2B port, network byte order).
+    /// Lokinet wire format key `"a"` in RelayContact bt_dict.
+    pub fn to_ipv4_bytes(&self) -> Option<[u8; 6]> {
+        self.addresses.iter().find_map(|a| match a {
+            SocketAddr::V4(v4) => {
+                let mut buf = [0u8; 6];
+                buf[..4].copy_from_slice(&v4.ip().octets());
+                buf[4..].copy_from_slice(&v4.port().to_be_bytes());
+                Some(buf)
+            }
+            _ => None,
+        })
+    }
+
+    /// Encode the first IPv6 address as raw 18 bytes (16B IP + 2B port, network byte order).
+    /// Lokinet wire format key `"6"` in RelayContact bt_dict.
+    pub fn to_ipv6_bytes(&self) -> Option<[u8; 18]> {
+        self.addresses.iter().find_map(|a| match a {
+            SocketAddr::V6(v6) => {
+                let mut buf = [0u8; 18];
+                buf[..16].copy_from_slice(&v6.ip().octets());
+                buf[16..].copy_from_slice(&v6.port().to_be_bytes());
+                Some(buf)
+            }
+            _ => None,
+        })
+    }
+
+    /// Create from raw IPv4 bytes (6 bytes: 4B IP + 2B port, network byte order).
+    /// Lokinet wire format key `"a"`.
+    pub fn from_ipv4_bytes(pubkey: Vec<u8>, raw: &[u8; 6]) -> Option<Self> {
+        if raw.len() < 6 { return None; }
+        let ip = std::net::Ipv4Addr::new(raw[0], raw[1], raw[2], raw[3]);
+        let port = u16::from_be_bytes([raw[4], raw[5]]);
+        let mut rc = Self::new(pubkey);
+        rc.addresses.push(SocketAddr::V4(std::net::SocketAddrV4::new(ip, port)));
+        Some(rc)
+    }
+
+    /// Create from raw IPv6 bytes (18 bytes: 16B IP + 2B port, network byte order).
+    /// Lokinet wire format key `"6"`.
+    pub fn from_ipv6_bytes(pubkey: Vec<u8>, raw: &[u8; 18]) -> Option<Self> {
+        let mut ip = [0u8; 16];
+        ip.copy_from_slice(&raw[..16]);
+        let port = u16::from_be_bytes([raw[16], raw[17]]);
+        let mut rc = Self::new(pubkey);
+        rc.addresses.push(SocketAddr::V6(std::net::SocketAddrV6::new(
+            std::net::Ipv6Addr::from(ip), port, 0, 0
+        )));
+        Some(rc)
+    }
+
 }
 
 /// Encrypted SNS record from Oxen chain.
@@ -273,6 +326,7 @@ impl std::fmt::Display for RouterId {
 
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use parking_lot::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use parking_lot::RwLock;
 
@@ -359,6 +413,7 @@ pub struct ContactDB {
     entries: RwLock<HashMap<RouterId, (RouterContact, u64)>>,
     /// Default TTL in seconds for stored contacts
     default_ttl: u64,
+    purge_task: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
 }
 
 impl ContactDB {
@@ -367,6 +422,7 @@ impl ContactDB {
         Self {
             entries: RwLock::new(HashMap::new()),
             default_ttl,
+            purge_task: parking_lot::Mutex::new(None),
         }
     }
 
@@ -458,6 +514,21 @@ impl ContactDB {
     }
 
     /// Check if we have a contact for the given RouterId that is not expired.
+    pub fn start_purge_timer(self: &std::sync::Arc<Self>) {
+        let db = std::sync::Arc::clone(self);
+        let mut tg = self.purge_task.lock();
+        if tg.is_some() { return; }
+        let h = tokio::spawn(async move {
+            let mut iv = tokio::time::interval(std::time::Duration::from_secs(30));
+            loop { iv.tick().await; let r = db.expire(); if r > 0 { tracing::debug!(target: "contact", removed = r, "purged expired contacts"); } }
+        });
+        *tg = Some(h);
+    }
+    pub fn stop_purge_timer(&self) {
+        let mut tg = self.purge_task.lock();
+        if let Some(h) = tg.take() { h.abort(); }
+    }
+
     pub fn has(&self, rid: &RouterId) -> bool {
         let entries = self.entries.read();
         match entries.get(rid) {

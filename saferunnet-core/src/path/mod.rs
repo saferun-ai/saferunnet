@@ -35,3 +35,28 @@ pub enum PathError {
     #[error("path {0} is in wrong state: {1:?}")]
     WrongState(u64, PathState),
 }
+
+
+impl PathDescriptor {
+    pub fn new(path_id: u64, hops: Vec<PublicKey>) -> Self {
+        Self { path_id, hops, state: PathState::Building }
+    }
+    pub fn first_hop(&self) -> Option<&PublicKey> { self.hops.first() }
+    pub fn last_hop(&self) -> Option<&PublicKey> { self.hops.last() }
+    pub fn len(&self) -> usize { self.hops.len() }
+    pub fn is_empty(&self) -> bool { self.hops.is_empty() }
+
+    /// Human-readable path representation with hop chain.
+    pub fn to_string(&self) -> String {
+        let hops_display: Vec<String> = self.hops
+            .iter()
+            .map(|pk| {
+                let hex_pk = hex::encode(pk.to_bytes());
+                let short = &hex_pk[..8.min(hex_pk.len())];
+                format!("{}", short)
+            })
+            .collect();
+        format!("Path#{} [{}] ({:?})", self.path_id, hops_display.join(" -> "), self.state)
+    }
+}
+

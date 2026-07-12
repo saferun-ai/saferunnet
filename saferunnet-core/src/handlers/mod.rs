@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::{Duration, Instant};
+use std::path::Path;
 
 use crate::address::{Ipv4Net, Ipv6Net};
 use crate::net::IpPacket;
@@ -34,6 +35,9 @@ pub enum TunError {
     #[error("IPv6 address pool exhausted for {0:?}")]
     Ipv6PoolExhausted(Ipv6Net),
 
+    #[error("failed to persist IP mappings: {0}")]
+    PersistError(String),
+
     #[error("IPv6 is not enabled on this endpoint")]
     Ipv6NotEnabled,
 
@@ -51,6 +55,29 @@ pub enum TunError {
 }
 
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// TunEndpointBase — abstract TUN endpoint interface
+// ---------------------------------------------------------------------------
+
+/// Abstract TUN endpoint interface for platform-independent I/O.
+/// Lokinet C++ equivalent: `llarp/handlers/tun_base.hpp` `TunEPBase`.
+pub trait TunEndpointBase {
+    /// Write an IP packet to the TUN device.
+    fn write_packet(&self, pkt: &[u8]) -> Result<usize, TunError>;
+    
+    /// Read an IP packet from the TUN device (blocking).
+    fn read_packet(&self) -> Result<Vec<u8>, TunError>;
+    
+    /// Return the TUN interface name.
+    fn if_name(&self) -> &str;
+    
+    /// Return whether the endpoint is currently running.
+    fn is_running(&self) -> bool;
+    
+    /// Close the TUN device and stop processing.
+    fn close(&mut self) -> Result<(), TunError>;
+}
 // Traffic-type constants (port from Lokinet C++)
 // ---------------------------------------------------------------------------
 
@@ -832,8 +859,10 @@ mod tests {
     #[test]
     fn test_hook_dns_loki_resolves() {
         use crate::dns::message::{DnsQuestion, QTYPE_A, QCLASS_IN, FLAGS_QR};
-        let ep = TunEndpoint::new(test_net(), "tun0".into());
-
+        let ep = TunEndpoint::new(test_net(), "tun0".into());
+
+
+
         let mut query = DnsMessage::new(1);
         query.questions.push(DnsQuestion {
             name: "myservice.loki".into(),
@@ -870,3 +899,5 @@ mod tests {
         assert!(response.is_none());
     }
 }
+
+// TEST MARKER: changes applied

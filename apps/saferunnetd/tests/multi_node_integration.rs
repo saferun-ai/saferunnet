@@ -1,9 +1,9 @@
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm, KeyGenerator, PublicKey};
-use saferunnet_dht::NetworkDht;
-use saferunnet_exit::{AllowListPolicy, PermitAllPolicy};
-use saferunnet_link::{FrameKind, LlarpFrame};
-use saferunnet_router::{OnionRouter, PathBuilder, RelayHandler, RelayResult};
-use saferunnet_testing::{SimNetwork, SimTransport};
+use saferunnet_core::dht::NetworkDht;
+use saferunnet_core::vpn::{AllowListPolicy, PermitAllPolicy};
+use saferunnet_core::link::{FrameKind, LlarpFrame};
+use saferunnet_core::router::{OnionRouter, PathBuilder, RelayHandler, RelayResult};
+use saferunnet_core::testing::{SimNetwork, SimTransport};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
@@ -162,7 +162,7 @@ fn exit_policy_permit_and_deny() {
 
     // Allowed: safe.com:80
     let mut safe_payload = Vec::new();
-    saferunnet_exit::encode_exit_target("safe.com", 80, &mut safe_payload).unwrap();
+    saferunnet_core::vpn::encode_exit_target("safe.com", 80, &mut safe_payload).unwrap();
     let wrapped = router.wrap(&hops, &nonce, &safe_payload).unwrap();
     let frame = LlarpFrame::new(FrameKind::RelayData, 1, 0, wrapped).unwrap();
 
@@ -173,7 +173,7 @@ fn exit_policy_permit_and_deny() {
 
     // Denied: evil.com:666
     let mut evil_payload = Vec::new();
-    saferunnet_exit::encode_exit_target("evil.com", 666, &mut evil_payload).unwrap();
+    saferunnet_core::vpn::encode_exit_target("evil.com", 666, &mut evil_payload).unwrap();
     let evil_wrapped = router.wrap(&hops, &nonce, &evil_payload).unwrap();
     let frame = LlarpFrame::new(FrameKind::RelayData, 2, 0, evil_wrapped).unwrap();
 
@@ -199,7 +199,7 @@ fn non_exit_hop_skips_policy() {
 
     // Build exit payload that would be DENIED by the policy
     let mut exit_payload = Vec::new();
-    saferunnet_exit::encode_exit_target("blocked.com", 443, &mut exit_payload).unwrap();
+    saferunnet_core::vpn::encode_exit_target("blocked.com", 443, &mut exit_payload).unwrap();
 
     let nonce = make_nonce(7);
     let wrapped = router.wrap(&hops, &nonce, &exit_payload).unwrap();

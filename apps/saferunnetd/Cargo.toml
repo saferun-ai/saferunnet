@@ -3,36 +3,23 @@ name = "saferunnetd"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-authors.workspace = true
-repository.workspace = true
 
 [[bin]]
-name = "saferunnet"
+name = "saferunnetd"
 path = "src/main.rs"
 
 [dependencies]
-saferunnet-app = { path = "../../crates/saferunnet-app" }
-saferunnet-config = { path = "../../crates/saferunnet-config" }
-saferunnet-core = { path = "../../crates/saferunnet-core" }
-saferunnet-crypto = { path = "../../crates/saferunnet-crypto" }
-saferunnet-dht = { path = "../../crates/saferunnet-dht" }
-saferunnet-dns = { path = "../../crates/saferunnet-dns" }
-saferunnet-identity = { path = "../../crates/saferunnet-identity" }
-saferunnet-link = { path = "../../crates/saferunnet-link" }
-saferunnet-observability = { path = "../../crates/saferunnet-observability" }
-saferunnet-platform = { path = "../../crates/saferunnet-platform" }
-saferunnet-router = { path = "../../crates/saferunnet-router" }
-saferunnet-rpc = { path = "../../crates/saferunnet-rpc" }
-saferunnet-transport = { path = "../../crates/saferunnet-transport" }
+saferunnet-core = { path = "../../saferunnet-core" }
+saferunnet-crypto = { path = "../../saferunnet-crypto" }
+saferunnet-observability = { path = "../../saferunnet-observability" }
+saferunnet-platform = { path = "../../saferunnet-platform" }
+saferunnet-transport = { path = "../../saferunnet-transport" }
+saferunnet = { path = "../../saferunnet" }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "signal"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing.workspace = true
-
-[dev-dependencies]
-saferunnet-exit = { path = "../../crates/saferunnet-exit" }
-saferunnet-testing = { path = "../../crates/saferunnet-testing" }
 
 [features]
 soak = []

@@ -3,6 +3,16 @@ use saferunnet_crypto::PublicKey;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NetworkAddress { pub name: String, pub public_key: Vec<u8>, pub port: u16 }
+
+impl NetworkAddress {
+    pub fn from_loki_name(name: &str, pk: &PublicKey) -> Self { Self { name: name.to_string(), public_key: pk.to_bytes().to_vec(), port: 1090 } }
+    pub fn from_snode_name(name: &str, pk: &PublicKey) -> Self { Self { name: name.to_string(), public_key: pk.to_bytes().to_vec(), port: 22020 } }
+    pub fn is_loki(&self) -> bool { self.name.ends_with(".loki") }
+    pub fn is_snode(&self) -> bool { self.name.ends_with(".snode") }
+}
+
 pub struct DhtLokiResolver<C: DhtClient> {
     client: C,
     cache: Mutex<HashMap<String, Vec<PublicKey>>>,
@@ -44,6 +54,24 @@ impl<C: DhtClient> LokiResolver for DhtLokiResolver<C> {
         cache.insert(name.to_string(), keys.clone());
 
         Ok(keys)
+    }
+}
+
+impl<C: DhtClient> DhtLokiResolver<C> {
+    pub fn resolve_sns(&self, name: &str) -> Result<NetworkAddress, DnsError> {
+        if !is_saferunnet_name(name) { return Err(DnsError::NotLokiName(name.to_string())); }
+        let host = strip_saferunnet_suffix(name).unwrap_or(name);
+        if host.is_empty() || !host.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.') {
+            return Err(DnsError::InvalidCharacters(name.to_string()));
+        }
+        { let cache = self.cache.lock().unwrap(); if let Some(keys) = cache.get(name) { if !keys.is_empty() { return Ok(NetworkAddress::from_loki_name(name, &keys[0])); } } }
+        let target = derive_key_from_loki_name(name);
+        let results = self.client.lookup_intro_set(&target);
+        let keys: Vec<PublicKey> = results.iter().map(|r| r.public_key.clone()).collect();
+        if keys.is_empty() { return Err(DnsError::NotFound(name.to_string())); }
+        let addr = NetworkAddress::from_loki_name(name, &keys[0]);
+        self.cache.lock().unwrap().insert(name.to_string(), keys);
+        Ok(addr)
     }
 }
 

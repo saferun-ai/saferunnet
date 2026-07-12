@@ -1,16 +1,16 @@
-use saferunnet_app::{
+use saferunnet::{
     AppKernel, DnsResolverModule, IdentityModule, LinkMessageModule, LinkSessionStateModule,
     NODE_IDENTITY_SERVICE_KEY, PathManagerModule, SessionCoordinatorModule,
 };
-use saferunnet_config::load_from_path;
+use saferunnet_core::config::load_from_path;
 use saferunnet_crypto::{Ed25519KeyGenerator, KeyAlgorithm};
-use saferunnet_dht::NetworkDht;
-use saferunnet_dns::resolver::DhtClient;
-use saferunnet_identity::{FileIdentityRepository, IdentitySpec, NodeIdentity};
+use saferunnet_core::dht::NetworkDht;
+use saferunnet_core::dns::resolver::DhtClient;
+use saferunnet_core::contact::{FileIdentityRepository, IdentitySpec, NodeIdentity};
 use saferunnet_platform::TunDevice;
 #[cfg(windows)]
 use saferunnet_platform::WinTunDevice;
-use saferunnet_rpc::RpcServer;
+use saferunnet_core::rpc::RpcServer;
 
 mod forwarder;
 mod updater;
@@ -417,7 +417,7 @@ mod service {
 }
 
 fn main() {
-    saferunnet_observability::install("info").expect("install tracing");
+    saferunnet_observability::init_logging(&Default::default());
 
     let args: Vec<String> = std::env::args().collect();
 
@@ -742,7 +742,7 @@ fn parse_bootstrap_addr(entry: &str) -> Option<SocketAddr> {
 mod tests {
     use super::*;
     use saferunnet_crypto::KeyAlgorithm;
-    use saferunnet_dns::resolver::{DhtClient, DhtIntroResult};
+    use saferunnet_core::dns::resolver::{DhtClient, DhtIntroResult};
 
     const DNS_START: usize = 20 + 8;
 

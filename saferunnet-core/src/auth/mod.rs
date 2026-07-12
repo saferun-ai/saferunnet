@@ -1,4 +1,53 @@
 use serde::{Deserialize, Serialize};
+// ── Auth Codes & Result Types ───────────────────────────────────────────────
+
+/// Authentication result codes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AuthCode {
+    Accepted,
+    Rejected,
+    Failed,
+    RateLimit,
+    PaymentRequired,
+}
+
+impl AuthCode {
+    pub fn to_status_string(&self) -> &'static str {
+        match self {
+            AuthCode::Accepted => "accepted",
+            AuthCode::Rejected => "rejected",
+            AuthCode::Failed => "failed",
+            AuthCode::RateLimit => "rate_limit",
+            AuthCode::PaymentRequired => "payment_required",
+        }
+    }
+
+    pub fn to_http_code(&self) -> u16 {
+        match self {
+            AuthCode::Accepted => 200,
+            AuthCode::Rejected => 403,
+            AuthCode::Failed => 500,
+            AuthCode::RateLimit => 429,
+            AuthCode::PaymentRequired => 402,
+        }
+    }
+
+    pub fn is_success(&self) -> bool { matches!(self, AuthCode::Accepted) }
+}
+
+/// Structured authentication result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthResult {
+    pub code: AuthCode,
+    pub reason: Option<String>,
+}
+
+impl AuthResult {
+    pub fn accepted() -> Self { Self { code: AuthCode::Accepted, reason: None } }
+    pub fn rejected(reason: impl Into<String>) -> Self { Self { code: AuthCode::Rejected, reason: Some(reason.into()) } }
+    pub fn failed(reason: impl Into<String>) -> Self { Self { code: AuthCode::Failed, reason: Some(reason.into()) } }
+    pub fn is_accepted(&self) -> bool { self.code == AuthCode::Accepted }
+}
 
 /// Service node authentication token.
 /// Lokinet C++ equivalent: llarp/auth/auth.hpp AuthToken
@@ -96,5 +145,37 @@ mod tests {
     fn test_auth_policy_variants() {
         assert!(matches!(AuthPolicy::AllowAll, AuthPolicy::AllowAll));
         assert!(matches!(AuthPolicy::RequireToken, AuthPolicy::RequireToken));
+    }
+
+    #[test]
+    fn test_auth_code_to_status_string() {
+        assert_eq!(AuthCode::Accepted.to_status_string(), "accepted");
+        assert_eq!(AuthCode::Rejected.to_status_string(), "rejected");
+        assert_eq!(AuthCode::Failed.to_status_string(), "failed");
+        assert_eq!(AuthCode::RateLimit.to_status_string(), "rate_limit");
+        assert_eq!(AuthCode::PaymentRequired.to_status_string(), "payment_required");
+    }
+
+    #[test]
+    fn test_auth_code_to_http_code() {
+        assert_eq!(AuthCode::Accepted.to_http_code(), 200);
+        assert_eq!(AuthCode::Rejected.to_http_code(), 403);
+        assert_eq!(AuthCode::Failed.to_http_code(), 500);
+        assert_eq!(AuthCode::RateLimit.to_http_code(), 429);
+        assert_eq!(AuthCode::PaymentRequired.to_http_code(), 402);
+    }
+
+    #[test]
+    fn test_auth_code_is_success() {
+        assert!(AuthCode::Accepted.is_success());
+        assert!(!AuthCode::Rejected.is_success());
+        assert!(!AuthCode::RateLimit.is_success());
+    }
+
+    #[test]
+    fn test_auth_result_accepted() {
+        assert!(AuthResult::accepted().is_accepted());
+        assert!(!AuthResult::rejected("no").is_accepted());
+        assert!(!AuthResult::failed("err").is_accepted());
     }
 }

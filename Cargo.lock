@@ -1714,6 +1714,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "saferunnetd"
+version = "0.2.0"
+dependencies = [
+ "saferunnet",
+ "saferunnet-core",
+ "saferunnet-crypto",
+ "saferunnet-observability",
+ "saferunnet-platform",
+ "saferunnet-transport",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

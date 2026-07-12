@@ -16,6 +16,42 @@ pub const DEFAULT_TTL: u32 = 60;
 
 /// An async UDP-based DNS server that resolves SaferunNet names (.loki/.snode/.sfr) via DHT and forwards
 /// other queries upstream.
+// ── PacketSource trait ─────────────────────────────────────────────────
+
+pub trait PacketSource: Send + Sync {
+    fn would_loop(&self, question_name: &str) -> bool;
+    fn send_udp(&self, data: &[u8]) -> Result<(), String>;
+    fn bound_on(&self) -> std::net::SocketAddr;
+}
+
+// ── MultiPlatform DNS resolver ─────────────────────────────────────────
+
+pub struct MultiPlatform { backends: Vec<Box<dyn DnsBackend>> }
+
+pub trait DnsBackend: Send + Sync {
+    fn try_resolve(&self, name: &str, qtype: u16) -> Result<Option<String>, String>;
+    fn name(&self) -> &'static str;
+}
+
+impl MultiPlatform {
+    pub fn new() -> Self { Self { backends: Vec::new() } }
+    pub fn add_backend(&mut self, backend: Box<dyn DnsBackend>) { self.backends.push(backend); }
+    pub fn backend_count(&self) -> usize { self.backends.len() }
+
+    pub fn resolve(&self, name: &str, qtype: u16) -> Result<Option<String>, String> {
+        for backend in &self.backends {
+            match backend.try_resolve(name, qtype) {
+                Ok(Some(ip)) => return Ok(Some(ip)),
+                Ok(None) => continue,
+                Err(e) => { tracing::warn!("DNS backend '{}' failed: {}", backend.name(), e); continue; }
+            }
+        }
+        Ok(None)
+    }
+}
+
+impl Default for MultiPlatform { fn default() -> Self { Self::new() } }
+
 pub struct DnsServer {
     bind_addr: SocketAddr,
     upstream: Option<SocketAddr>,

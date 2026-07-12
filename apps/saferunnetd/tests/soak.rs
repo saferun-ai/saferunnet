@@ -5,8 +5,8 @@
 #[cfg(feature = "soak")]
 mod soak {
     use saferunnet_crypto::{KeyAlgorithm, PublicKey};
-    use saferunnet_dns::resolver::{DhtClient, DhtIntroResult};
-    use saferunnet_link::FrameKind;
+    use saferunnet_core::dns::resolver::{DhtClient, DhtIntroResult};
+    use saferunnet_core::link::FrameKind;
     use saferunnetd::forwarder::OnionForwarder;
 
     /// Build a deterministic PublicKey from a seed byte.

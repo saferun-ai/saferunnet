@@ -43,6 +43,19 @@ pub struct ConnectionStats {
 /// Maintains two connection pools:
 /// - `service_connections`: connections where the remote is a service node
 /// - `client_connections`: connections where the remote is a client (service nodes only)
+/// Keep-alive interval type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeepAliveType {
+    Relay,
+    Client,
+}
+
+impl KeepAliveType {
+    pub fn interval_secs(&self) -> u64 { match self { KeepAliveType::Relay => 10, KeepAliveType::Client => 20 } }
+    pub fn interval(&self) -> std::time::Duration { std::time::Duration::from_secs(self.interval_secs()) }
+    pub fn name(&self) -> &'static str { match self { KeepAliveType::Relay => "relay", KeepAliveType::Client => "client" } }
+}
+
 pub struct LinkManager {
     transport: Arc<dyn TransportLayer>,
     service_connections: RwLock<HashMap<RouterId, Box<dyn Connection>>>,
@@ -69,6 +82,10 @@ impl LinkManager {
     pub fn set_keep_alive_count(&mut self, count: usize) {
         self.keep_alive_count = count;
     }
+    pub fn keep_alive_type(&self) -> KeepAliveType {
+        if self.is_service_node { KeepAliveType::Relay } else { KeepAliveType::Client }
+    }
+
 
     /// Connect to a remote router using its RouterContact.
     pub async fn connect_to(&self, rc: &RouterContact) -> LinkResult<()> {
@@ -532,10 +549,34 @@ mod tests {
             .unwrap();
         assert_eq!(result, Bytes::from("echo"));
     }
+
+    #[test]
+    fn test_keep_alive_type_relay() {
+        let kt = KeepAliveType::Relay;
+        assert_eq!(kt.interval_secs(), 10);
+        assert_eq!(kt.name(), "relay");
+        assert_eq!(kt.interval(), Duration::from_secs(10));
+    }
+
+    #[test]
+    fn test_keep_alive_type_client() {
+        let kt = KeepAliveType::Client;
+        assert_eq!(kt.interval_secs(), 20);
+        assert_eq!(kt.name(), "client");
+        assert_eq!(kt.interval(), Duration::from_secs(20));
+    }
+
+    #[test]
+    fn test_keep_alive_type_service_node() {
+        let transport = Arc::new(MockTransport::new());
+        let lm = LinkManager::new(transport, true);
+        assert_eq!(lm.keep_alive_type(), KeepAliveType::Relay);
+    }
+
+    #[test]
+    fn test_keep_alive_type_client_node() {
+        let transport = Arc::new(MockTransport::new());
+        let lm = LinkManager::new(transport, false);
+        assert_eq!(lm.keep_alive_type(), KeepAliveType::Client);
+    }
 }
-
-
-
-
-
-

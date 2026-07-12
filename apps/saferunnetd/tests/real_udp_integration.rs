@@ -1,13 +1,13 @@
-use saferunnet_app::{
+use saferunnet::{
     AppKernel, DnsResolverModule, IdentityModule, LinkMessageModule, LinkSessionStateModule,
     PathManagerModule, SessionCoordinatorModule,
 };
 use saferunnet_crypto::PublicKey;
-use saferunnet_dht::NetworkDht;
-use saferunnet_dns::resolver::DhtClient;
-use saferunnet_identity::NodeIdentity;
-use saferunnet_link::{FrameKind, LlarpFrame};
-use saferunnet_router::RelayResult;
+use saferunnet_core::dht::NetworkDht;
+use saferunnet_core::dns::resolver::DhtClient;
+use saferunnet_core::contact::NodeIdentity;
+use saferunnet_core::link::{FrameKind, LlarpFrame};
+use saferunnet_core::router::RelayResult;
 use saferunnet_transport::{LinkTransport, UdpTransport};
 use saferunnetd::forwarder::OnionForwarder;
 use std::mem::ManuallyDrop;

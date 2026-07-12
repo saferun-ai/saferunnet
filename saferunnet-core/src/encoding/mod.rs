@@ -164,3 +164,61 @@ mod tests {
         assert_eq!(decoded, val);
     }
 }
+
+// ── BtDict wrapper ─────────────────────────────────────────────────────────
+
+/// Dictionary wrapper for bencode encoding/decoding.
+#[derive(Debug, Clone)]
+pub struct BtDict {
+    entries: Vec<(String, BtValue)>,
+}
+
+impl BtDict {
+    pub fn new() -> Self { Self { entries: Vec::new() } }
+
+    pub fn insert_int(mut self, key: &str, val: i64) -> Self {
+        self.entries.push((key.to_string(), BtValue::Integer(val)));
+        self
+    }
+
+    pub fn insert(mut self, key: &str, val: &[u8]) -> Self {
+        self.entries.push((key.to_string(), BtValue::String(val.to_vec())));
+        self
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        BtValue::Dict(self.entries.clone()).encode()
+    }
+
+    pub fn from_bytes(data: &[u8]) -> Result<(Self, usize), String> {
+        let (val, consumed) = BtValue::decode(data)?;
+        match val {
+            BtValue::Dict(entries) => Ok((Self { entries }, consumed)),
+            _ => Err("not a dict".into()),
+        }
+    }
+
+    pub fn get_int(&self, key: &str) -> Option<i64> {
+        self.entries.iter().find_map(|(k, v)| {
+            if k == key {
+                match v { BtValue::Integer(n) => Some(*n), _ => None }
+            } else { None }
+        })
+    }
+
+    pub fn get_list(&self, key: &str) -> Option<Vec<Vec<u8>>> {
+        self.entries.iter().find_map(|(k, v)| {
+            if k == key {
+                match v {
+                    BtValue::List(items) => {
+                        let strings: Vec<Vec<u8>> = items.iter().filter_map(|item| {
+                            match item { BtValue::String(s) => Some(s.clone()), _ => None }
+                        }).collect();
+                        Some(strings)
+                    }
+                    _ => None,
+                }
+            } else { None }
+        })
+    }
+}

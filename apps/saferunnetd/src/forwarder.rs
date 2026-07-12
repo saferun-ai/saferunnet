@@ -4,9 +4,9 @@
 //! through the LLARP relay chain toward exit nodes.
 
 use saferunnet_crypto::PublicKey;
-use saferunnet_dns::resolver::DhtClient;
-use saferunnet_link::{FrameKind, LlarpFrame};
-use saferunnet_router::{OnionRouter, RelayHandler, RelayResult};
+use saferunnet_core::dns::resolver::DhtClient;
+use saferunnet_core::link::{FrameKind, LlarpFrame};
+use saferunnet_core::router::{OnionRouter, RelayHandler, RelayResult};
 use std::net::SocketAddr;
 
 /// Routes TUN packets through the onion network.
@@ -35,10 +35,10 @@ impl OnionForwarder {
         if path.is_empty() {
             return Err(ForwarderError::EmptyPath);
         }
-        if path.len() > saferunnet_router::onion::MAX_ONION_HOPS {
+        if path.len() > saferunnet_core::router::onion::MAX_ONION_HOPS {
             return Err(ForwarderError::PathTooLong {
                 hops: path.len(),
-                max: saferunnet_router::onion::MAX_ONION_HOPS,
+                max: saferunnet_core::router::onion::MAX_ONION_HOPS,
             });
         }
 
@@ -141,11 +141,11 @@ pub enum ForwarderError {
     #[error("path too long: {hops} hops, max {max}")]
     PathTooLong { hops: usize, max: usize },
     #[error("onion error: {0}")]
-    Onion(#[from] saferunnet_router::OnionError),
+    Onion(#[from] saferunnet_core::router::OnionError),
     #[error("frame error: {0}")]
-    Frame(#[from] saferunnet_link::FrameCodecError),
+    Frame(#[from] saferunnet_core::link::FrameCodecError),
     #[error("relay error: {0}")]
-    Relay(#[from] saferunnet_router::RelayError),
+    Relay(#[from] saferunnet_core::router::RelayError),
     #[error("no address found for first hop")]
     NoAddress,
 }
@@ -171,7 +171,7 @@ mod tests {
         let path: Vec<_> = (1..=3).map(make_key).collect();
         let nonce = make_nonce(42);
         let mut packet = Vec::new();
-        saferunnet_exit::encode_exit_target("10.0.0.1", 443, &mut packet).unwrap();
+        saferunnet_core::vpn::encode_exit_target("10.0.0.1", 443, &mut packet).unwrap();
 
         let frame = fwd.wrap_packet(&packet, &path, &nonce, 1).unwrap();
         assert_eq!(frame.kind, FrameKind::RelayData);
@@ -221,17 +221,17 @@ mod tests {
             fn lookup_intro_set(
                 &self,
                 _target: &PublicKey,
-            ) -> Vec<saferunnet_dns::resolver::DhtIntroResult> {
+            ) -> Vec<saferunnet_core::dns::resolver::DhtIntroResult> {
                 vec![
-                    saferunnet_dns::resolver::DhtIntroResult {
+                    saferunnet_core::dns::resolver::DhtIntroResult {
                         public_key: make_key(1),
                         addresses: vec!["10.0.0.1:1090".into()],
                     },
-                    saferunnet_dns::resolver::DhtIntroResult {
+                    saferunnet_core::dns::resolver::DhtIntroResult {
                         public_key: make_key(2),
                         addresses: vec!["10.0.0.2:1090".into()],
                     },
-                    saferunnet_dns::resolver::DhtIntroResult {
+                    saferunnet_core::dns::resolver::DhtIntroResult {
                         public_key: make_key(3),
                         addresses: vec!["10.0.0.3:1090".into()],
                     },
@@ -260,8 +260,8 @@ mod tests {
             fn lookup_intro_set(
                 &self,
                 _target: &PublicKey,
-            ) -> Vec<saferunnet_dns::resolver::DhtIntroResult> {
-                vec![saferunnet_dns::resolver::DhtIntroResult {
+            ) -> Vec<saferunnet_core::dns::resolver::DhtIntroResult> {
+                vec![saferunnet_core::dns::resolver::DhtIntroResult {
                     public_key: make_key(1),
                     addresses: vec!["10.0.0.1:1090".into()],
                 }]
@@ -287,7 +287,7 @@ mod tests {
             fn lookup_intro_set(
                 &self,
                 _target: &PublicKey,
-            ) -> Vec<saferunnet_dns::resolver::DhtIntroResult> {
+            ) -> Vec<saferunnet_core::dns::resolver::DhtIntroResult> {
                 vec![]
             }
         }
@@ -309,8 +309,8 @@ mod tests {
             fn lookup_intro_set(
                 &self,
                 _target: &PublicKey,
-            ) -> Vec<saferunnet_dns::resolver::DhtIntroResult> {
-                vec![saferunnet_dns::resolver::DhtIntroResult {
+            ) -> Vec<saferunnet_core::dns::resolver::DhtIntroResult> {
+                vec![saferunnet_core::dns::resolver::DhtIntroResult {
                     public_key: make_key(1),
                     addresses: vec!["10.0.0.1:1090".into()],
                 }]
@@ -337,8 +337,8 @@ mod tests {
             fn lookup_intro_set(
                 &self,
                 _target: &PublicKey,
-            ) -> Vec<saferunnet_dns::resolver::DhtIntroResult> {
-                vec![saferunnet_dns::resolver::DhtIntroResult {
+            ) -> Vec<saferunnet_core::dns::resolver::DhtIntroResult> {
+                vec![saferunnet_core::dns::resolver::DhtIntroResult {
                     public_key: make_key(1),
                     addresses: vec![],
                 }]

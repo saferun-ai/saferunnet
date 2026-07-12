@@ -21,7 +21,7 @@ fn temp_dir() -> PathBuf {
 
 #[test]
 fn binary_name_is_saferunnet() {
-    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnetd"))
         .output()
         .unwrap();
 
@@ -34,7 +34,7 @@ fn check_config_accepts_a_minimal_router_section() {
     let path = temp_path();
     fs::write(&path, "[router]\nnickname=test-node\n").unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnetd"))
         .args(["--check-config", path.to_str().unwrap()])
         .output()
         .unwrap();
@@ -60,7 +60,7 @@ fn bootstrap_resolves_relative_keyfile_under_relative_data_dir() {
     )
     .unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnetd"))
         .args(["--bootstrap", config_path.to_str().unwrap()])
         .output()
         .unwrap();
@@ -84,7 +84,7 @@ fn bootstrap_defaults_keyfile_under_data_dir_and_creates_parent_dirs() {
     )
     .unwrap();
 
-    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnetd"))
         .args(["--bootstrap", config_path.to_str().unwrap()])
         .output()
         .unwrap();
@@ -98,7 +98,7 @@ fn bootstrap_defaults_keyfile_under_data_dir_and_creates_parent_dirs() {
 
 #[test]
 fn check_services_starts_and_stops_all_modules() {
-    let output = Command::new(env!("CARGO_BIN_EXE_saferunnet"))
+    let output = Command::new(env!("CARGO_BIN_EXE_saferunnetd"))
         .arg("--check-services")
         .output()
         .expect("run saferunnet --check-services");

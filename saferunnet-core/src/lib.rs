@@ -29,6 +29,7 @@ pub mod session;
 pub mod vpn;
 pub mod win_service;
 pub mod util;
+pub mod testing;
 
 pub use session::{
     AuthenticatedServiceMessage, ServiceMessageError, ServiceMessageKind, SessionHopId, SessionTag,
@@ -42,6 +43,5 @@ pub use link_message::{AuthenticatedLinkMessage, LinkMessageError};
 pub use module::{ModuleError, RuntimeModule};
 pub use service::{ServiceKey, ServiceRegistry};
 pub use session::session_state::SessionState;
-
 
 
