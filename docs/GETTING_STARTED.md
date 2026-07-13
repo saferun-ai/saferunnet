@@ -1,266 +1,173 @@
-# Getting Started with Saferunnet
+# Getting Started with SaferunNet
 
 ## Prerequisites
 
 - **Rust** stable 1.75+ ([install via rustup](https://rustup.rs))
-- **Windows** (for TUN device support — the initial target platform)
+- **Windows** / **macOS** / **Linux** (TUN device support on all platforms)
 - **Git** (to clone the repository)
-- **Administrator privileges** (required for TUN adapter creation and Windows service installation)
+- **Administrator/root privileges** (required for TUN adapter creation)
 
 ## Quick Start
 
 ```powershell
-# 1. Clone the repository
-git clone <repository-url> ReburnSaferunNet
-cd ReburnSaferunNet
+# 1. Clone
+git clone https://github.com/saferun-ai/saferunnet.git
+cd saferunnet
 
-# 2. Build the release binary
+# 2. Build
 cargo build --release
 
-# 3. Create a minimal config
+# 3. Create config
 @"
 [router]
 nickname = my-node
-bind_port = 1090
-rpc_port = 1190
+data-dir = ./data
 
 [network]
-ifaddr = 10.0.0.1/16
-keyfile = identity.key
+keyfile = ./data/identity.key
 
 [logging]
 level = info
 "@ | Out-File -FilePath saferunnet.ini -Encoding utf8
 
-# 4. Bootstrap identity
-.\target\release\saferunnet --bootstrap saferunnet.ini
-
-# 5. Run the daemon
-.\target\release\saferunnet daemon --config saferunnet.ini
+# 4. Run
+.\target\release\saferunnet --config saferunnet.ini
 ```
 
 ## Build Commands
 
 | Command | Description |
 |---------|-------------|
-| `cargo build --release` | Build optimized binary (`target/release/saferunnet.exe`) |
-| `cargo build` | Build debug binary (faster compilation, slower runtime) |
-| `cargo check` | Fast compile check without producing a binary |
-| `cargo test --workspace` | Run all tests across all crates |
-| `cargo test -p saferunnetd --features soak` | Run daemon tests with soak feature enabled |
-| `cargo fmt --all` | Format all code |
-| `cargo clippy --workspace --all-targets -- -D warnings` | Run clippy lints |
+| `cargo build --release` | Build all targets (lib + bins) |
+| `cargo build --bin saferunnet --release` | CLI binary only → `target/release/saferunnet.exe` |
+| `cargo build --bin saferunnetd --release` | Daemon binary only → `target/release/saferunnetd.exe` |
+| `cargo build --lib --release` | Library only → `target/release/saferunnet.dll` / `.so` / `.dylib` |
+| `cargo check` | Fast compile check (no binary output) |
+| `cargo test --workspace` | Run all 478 tests across all crates |
+| `cargo test -p saferunnetd` | Run daemon + integration tests |
+| `cargo fmt --all --check` | Check code formatting |
+| `cargo clippy --workspace --all-targets` | Run linter |
 
-## Minimal Configuration
+## CLI Reference
 
-Save as `saferunnet.ini`:
+```
+SaferunNet -- Lokinet-compatible VPN daemon
+
+Usage: saferunnet.exe [OPTIONS]
+
+Options:
+  -c, --config <CONFIG>        Path to configuration file [default: saferunnet.ini]
+      --nickname <NICKNAME>    Override node nickname
+      --keyfile <KEYFILE>      Path to identity key file
+      --oxend-url <OXEND_URL>  Oxen daemon JSON-RPC endpoint
+      --log-level <LOG_LEVEL>  Log level: trace, debug, info, warn, error
+      --log-file <LOG_FILE>    Log to file instead of stdout
+  -h, --help                   Print help
+  -V, --version                Print version
+```
+
+## Configuration (Lokinet-compatible INI)
 
 ```ini
 [router]
-nickname = my-saferunnet-node
-data_dir = ./var/lib/saferunnet
-bind_port = 1090
-rpc_port = 1190
-bootstrap = pubkey1@10.0.0.1:1090,pubkey2@10.0.0.2:1090
+nickname = my-node
+data-dir = ./data         # Working directory for identity, DB, logs
 
 [network]
-exit = false
-reachable = false
-ifaddr = 10.0.0.1/16
-keyfile = identity.key
-hops = 3
-paths = 2
+keyfile = ./data/identity.key   # Ed25519 identity key path
+bind = 0.0.0.0:1090             # QUIC listen address
+ifaddr = 10.0.0.1/16            # TUN interface address
+exit = false                     # Enable exit mode
+hops = 4                        # Path hop count
+paths = 6                       # Active path count
+exit-node = <pubkey>            # Exit node pubkey (repeatable)
 
 [logging]
-level = info
+level = info              # trace | debug | info | warn | error
+file = saferunnet.log     # Log file path (omit for stdout)
 ```
 
-### Config Sections
+## Building as a Dynamic Library
 
-- **`[router]`** — Node nickname, data directory, bind and RPC ports, bootstrap routers
-- **`[network]`** — Exit mode, TUN address, onion hop/path counts, key file
-- **`[logging]`** — Log level (`trace`, `debug`, `info`, `warn`, `error`)
-
-All config keys have sensible defaults. The only required section is `[router]`.
-
-## Running Saferunnet
-
-### Daemon Mode
+SaferunNet can be embedded as a C-compatible shared library:
 
 ```powershell
-# With explicit --config flag
-saferunnet daemon --config saferunnet.ini
+# Build shared library
+cargo build --lib --release
 
-# With positional config path
-saferunnet daemon saferunnet.ini
+# Windows output:
+#   target/release/saferunnet.dll
+#   target/release/saferunnet.dll.lib  (import library)
+#
+# Linux output:
+#   target/release/libsaferunnet.so
+#
+# macOS output:
+#   target/release/libsaferunnet.dylib
 ```
 
-The daemon starts the AppKernel, bootstraps the DHT, creates the TUN device (if `ifaddr` is configured), and starts the admin RPC server on `127.0.0.1:<rpc_port>`. Press `Ctrl+C` to gracefully shut down.
+The C API is in `saferunnet/src/capi.rs`. Link against the library and include the generated header:
 
-### Bootstrap Mode
+```c
+// Example C usage
+#include "saferunnet.h"
+
+int main() {
+    saferunnet_config_t cfg = saferunnet_config_default();
+    saferunnet_t* ctx = saferunnet_init(&cfg);
+    saferunnet_start(ctx);
+    // ... use the network ...
+    saferunnet_stop(ctx);
+    saferunnet_free(ctx);
+    return 0;
+}
+```
+
+## Running Tests
 
 ```powershell
-saferunnet --bootstrap saferunnet.ini
-```
-
-Generates an Ed25519 identity key (if one does not exist), stores it in `identity.key`, and verifies the identity service. Prints `identity bootstrap ok` on success.
-
-### Config Validation
-
-```powershell
-saferunnet --check-config saferunnet.ini
-```
-
-Parses and validates the config file. Prints `config ok` on success, or an error message describing the problem.
-
-### Service Smoke Test
-
-```powershell
-saferunnet --check-services
-```
-
-Creates a temporary identity, starts all kernel modules (identity, link message, link session, path manager, DNS resolver, session coordinator), and verifies they initialize cleanly.
-
-## Windows Service Management
-
-### Install as a Windows Service
-
-```powershell
-# Uses the current exe path and specified config
-saferunnet --service-install saferunnet.ini
-
-# With default config path (saferunnet.ini)
-saferunnet --service-install
-```
-
-This registers the binary as a Windows service named `saferunnet` (display name: "Saferunnet LLARP Service") with auto-start. The service runs `saferunnet daemon --config <config_path>`.
-
-### Manage the Service
-
-```powershell
-# Check service status
-saferunnet --service-status
-
-# Uninstall the service
-saferunnet --service-uninstall
-```
-
-For manual control, use `sc.exe` directly:
-
-```powershell
-sc.exe start saferunnet
-sc.exe stop saferunnet
-sc.exe query saferunnet
-```
-
-## Update Management
-
-```powershell
-# Check for available updates
-saferunnet --update-check
-
-# Check against a specific update host
-saferunnet --update-check https://updates.example.com
-
-# Download and apply an update
-saferunnet --update-apply
-
-# Download from a specific host
-saferunnet --update-apply https://updates.example.com
-```
-
-## CLI Flags Reference
-
-| Flag | Args | Description |
-|------|------|-------------|
-| `daemon` | `--config <FILE>` or `<FILE>` | Run as daemon |
-| `--bootstrap` | `<FILE>` | Bootstrap node identity |
-| `--check-config` | `<FILE>` | Validate config file |
-| `--check-services` | (none) | Smoke-test kernel modules |
-| `--service-install` | `[CONFIG_PATH]` | Windows: install as service |
-| `--service-uninstall` | (none) | Windows: uninstall service |
-| `--service-status` | (none) | Windows: query service status |
-| `--update-check` | `[HOST]` | Check for updates |
-| `--update-apply` | `[HOST]` | Download and apply update |
-
-## Project Structure
-
-```
-ReburnSaferunNet/
-├── apps/
-│   └── saferunnetd/          # Binary crate (produces saferunnet.exe)
-├── crates/
-│   ├── saferunnet-core/      # Foundation traits and service registry
-│   ├── saferunnet-app/       # Module implementations (AppKernel)
-│   ├── saferunnet-config/    # Config loading and normalization
-│   ├── saferunnet-compat-lokinet/  # Lokinet .ini parser
-│   ├── saferunnet-crypto/    # Ed25519, AES-256-GCM
-│   ├── saferunnet-dht/       # Distributed Hash Table
-│   ├── saferunnet-dns/       # Loki DNS resolver
-│   ├── saferunnet-exit/      # Exit policy
-│   ├── saferunnet-identity/  # Node identity persistence
-│   ├── saferunnet-link/      # Link-layer protocol
-│   ├── saferunnet-observability/  # Tracing/logging
-│   ├── saferunnet-path/      # Onion path construction
-│   ├── saferunnet-platform/  # Windows TUN device
-│   ├── saferunnet-router/    # Router functionality
-│   ├── saferunnet-rpc/       # Admin RPC server
-│   ├── saferunnet-service/   # Link message codec
-│   ├── saferunnet-testing/   # Test utilities
-│   └── saferunnet-transport/ # UDP transport
-├── docs/
-│   ├── ARCHITECTURE.md       # Architecture overview
-│   ├── API.md                # API reference
-│   └── GETTING_STARTED.md    # This document
-├── tests/                    # Integration tests
-├── scripts/                  # Build and utility scripts
-└── Cargo.toml                # Workspace manifest
-```
-
-## Development Workflow
-
-```powershell
-# 1. Format and lint before committing
-cargo fmt --all
-cargo clippy --workspace --all-targets -- -D warnings
-
-# 2. Run all tests
+# All tests (478 total)
 cargo test --workspace
 
-# 3. Build release for testing
-cargo build --release
+# Specific crate
+cargo test -p saferunnet-core
+cargo test -p saferunnet-transport
+cargo test -p saferunnet-crypto
 
-# 4. Run a specific crate's tests
-cargo test -p saferunnet-config
+# Daemon integration tests (requires admin for TUN tests)
 cargo test -p saferunnetd
 
-# 5. Run with verbose output
-RUST_LOG=debug saferunnet daemon --config saferunnet.ini
+# With output
+cargo test -- --nocapture
+
+# Specific test
+cargo test -p saferunnet-core -- test_router_id_b32z_roundtrip
 ```
 
-## Troubleshooting
+## Connecting to Oxen Network
 
-### "failed to create TUN device"
-- Ensure you are running as Administrator
-- The TUN device requires the `wintun` driver to be available
-- Check that `network.ifaddr` is set to a valid CIDR like `10.0.0.1/16`
+To join the live Oxen Service Node network:
 
-### "TUN device not supported on this platform"
-- TUN support is currently Windows-only via `WinTunDevice`
-- Non-Windows platforms will see this info message; the daemon will continue without TUN
+```ini
+[router]
+nickname = my-router
 
-### "missing required router section"
-- Your config file must have a `[router]` section
-- At minimum, `[router]` can be empty (all values have defaults)
+[network]
+keyfile = ./identity.key
+bind = 0.0.0.0:1090
+```
 
-### Config validation
-Use `--check-config` to validate your config file before running the daemon:
 ```powershell
-saferunnet --check-config saferunnet.ini
+# Point to a running oxend instance
+.\target\release\saferunnet --config saferunnet.ini --oxend-url http://127.0.0.1:22023/json_rpc
 ```
 
-## Next Steps
+Without oxend, SaferunNet starts in standalone mode and will periodically retry the Oxen chain connection.
 
-- Read `docs/ARCHITECTURE.md` for the system design and crate dependency graph
-- Read `docs/API.md` for the full API reference and trait documentation
-- See `docs/superpowers/specs/` for the design spec and phase planning
+## Platform Notes
+
+| Platform | TUN Backend | DNS Config | Notes |
+|----------|------------|------------|-------|
+| Windows | WinTun (wintun.dll) | Registry | Requires admin for TUN creation |
+| macOS | utun | scutil | Tested on macOS 12+ |
+| Linux | tun | systemd-resolved / NetworkManager | Requires `CAP_NET_ADMIN` or root |
