@@ -175,14 +175,49 @@ saferunnet/
 
 ---
 
+
+---
+
 ## Documentation
 
+### Getting Started
 | Document | Description |
 |----------|-------------|
-| `docs/ARCHITECTURE.md` | Architecture overview, crate dependency graph, data flow, security model |
-| `docs/API.md` | Full API reference — types, traits, config format |
-| `docs/GETTING_STARTED.md` | Developer guide — prerequisites, build, config, service management |
-| `docs/gap-analysis/` | Lokinet ↔ SaferunNet gap analysis reports |
+| [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Prerequisites, build commands, CLI reference, configuration, platform notes, C API usage |
+
+### Architecture & Design
+| Document | Description |
+|----------|-------------|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Architecture overview, crate dependency graph, module composition, data flow, security model |
+| [`docs/API.md`](docs/API.md) | Full API reference — types, traits, config format, CLI reference |
+| [`docs/architecture/dependency-policy.md`](docs/architecture/dependency-policy.md) | Crate dependency rules and convergence policy |
+
+### Design Specs & Plans
+| Document | Description |
+|----------|-------------|
+| [`docs/superpowers/specs/2026-06-25-saferunnet-rewrite-design.md`](docs/superpowers/specs/2026-06-25-saferunnet-rewrite-design.md) | Original rewrite design spec |
+| [`docs/superpowers/specs/2026-06-27-saferunnet-architecture-design.md`](docs/superpowers/specs/2026-06-27-saferunnet-architecture-design.md) | Architecture design decisions |
+| [`docs/superpowers/plans/`](docs/superpowers/plans/) | Implementation plans (Phase 0–7) |
+
+### Module Status
+| Document | Module |
+|----------|--------|
+| [`docs/status/modules/app-kernel.md`](docs/status/modules/app-kernel.md) | App kernel — lifecycle, service registry, module orchestration |
+| [`docs/status/modules/config-system.md`](docs/status/modules/config-system.md) | Config system — INI parser, validation, normalization |
+| [`docs/status/modules/crypto-system.md`](docs/status/modules/crypto-system.md) | Crypto — Ed25519, signed envelopes, key generation |
+| [`docs/status/modules/identity-system.md`](docs/status/modules/identity-system.md) | Identity — NodeIdentity, file persistence, proofs |
+| [`docs/status/modules/link-system.md`](docs/status/modules/link-system.md) | Link layer — path control, session init/accept/close |
+| [`docs/status/modules/router-system.md`](docs/status/modules/router-system.md) | Router — announcements, capabilities, path build |
+| [`docs/status/modules/service-system.md`](docs/status/modules/service-system.md) | Service messages — authenticated protocol families |
+
+### Project Status
+| Document | Description |
+|----------|-------------|
+| [`docs/status/roadmap.md`](docs/status/roadmap.md) | Development roadmap (Phase 0–6) |
+| [`docs/status/current-phase.md`](docs/status/current-phase.md) | Current phase status and active work |
+| [`docs/status/session-log/`](docs/status/session-log/) | Session logs — per-session changelogs and verification |
+
+---
 
 ## License
 
